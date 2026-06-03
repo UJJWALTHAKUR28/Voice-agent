@@ -33,13 +33,16 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from agent.pipeline import VoiceAssistant, create_session  # noqa: E402
+from config.settings import get_settings
 
 # ── Load environment variables ──
 load_dotenv(_PROJECT_ROOT / ".env")
 
+settings = get_settings()
+
 # ── Logging ──
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, settings.log_level),
     format="%(asctime)s  %(name)-28s  %(levelname)-7s  %(message)s",
     datefmt="%H:%M:%S",
 )
@@ -53,7 +56,7 @@ logger = logging.getLogger("voice-agent")
 server = AgentServer()
 
 
-@server.rtc_session(agent_name="voice-agent")
+@server.rtc_session(agent_name=settings.agent_name)
 async def voice_agent_session(ctx: agents.JobContext):
     """
     Called once per LiveKit room/job.

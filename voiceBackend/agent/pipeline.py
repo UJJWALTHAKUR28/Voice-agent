@@ -28,6 +28,7 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from agent.tools import get_weather, search_wikipedia, send_frontend_action
 from agent.tools.server_tools import get_news, calculate
+from config.settings import get_settings
 
 logger = logging.getLogger("voice-agent.pipeline")
 
@@ -94,26 +95,27 @@ def create_session() -> AgentSession:
     All audio transport is WebRTC via LiveKit Cloud.
     The Cartesia plugin handles WebSocket streaming natively.
     """
+    settings = get_settings()
+
     # ── VAD — Silero (local, no API key) ──
     vad = silero.VAD.load()
 
     # ── STT — Deepgram Nova-3 (streaming transcription) ──
     stt = deepgram.STT(
-        model="nova-3",
-        language="en",
+        model=settings.deepgram_model,
+        language=settings.deepgram_language,
     )
 
     # ── LLM — Groq Llama-3.3-70B (sub-200ms first token) ──
     llm = groq.LLM(
-        model="llama-3.3-70b-versatile",
+        model=settings.groq_model,
     )
 
     # ── TTS — Cartesia Sonic-2 (streaming, sub-100ms TTFB) ──
-    # Voice: "Helpful Woman" — warm, natural, emotionally expressive
     tts_engine = cartesia.TTS(
-        model="sonic-2",
-        voice="694f9389-aac1-45b6-b726-9d9369183238",
-        language="en",
+        model=settings.cartesia_model,
+        voice=settings.cartesia_voice_id,
+        language=settings.cartesia_language,
     )
 
     # ── Turn Detection — ML-based multilingual model ──
@@ -133,8 +135,8 @@ def create_session() -> AgentSession:
     )
 
     logger.info(
-        "Pipeline created: VAD=silero | STT=deepgram/nova-3 | "
-        "LLM=groq/llama-3.3-70b | TTS=cartesia/sonic-2 | "
+        f"Pipeline created: VAD=silero | STT=deepgram/{settings.deepgram_model} | "
+        f"LLM=groq/{settings.groq_model} | TTS=cartesia/{settings.cartesia_model} | "
         "Turn=multilingual-model"
     )
 
