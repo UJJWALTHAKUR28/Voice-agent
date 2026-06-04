@@ -32,10 +32,12 @@ _PROJECT_ROOT = Path(__file__).parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from agent.pipeline import VoiceAssistant, create_session  # noqa: E402
-
-# ── Load environment variables ──
+# ── Load environment variables BEFORE importing plugins ──
+# Ensures GROQ_API_KEY, OLLAMA_BASE_URL, etc. are available
+# when plugins initialize.
 load_dotenv(_PROJECT_ROOT / ".env")
+
+from agent.pipeline import VoiceAssistant, create_session  # noqa: E402
 
 # ── Logging ──
 logging.basicConfig(

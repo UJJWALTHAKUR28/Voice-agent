@@ -27,6 +27,12 @@ from typing import Any
 import structlog
 
 
+def minimal_exception_formatter(sio: Any, exc_info: Any) -> None:
+    """One-line exception summary — no traceback in dev output."""
+    if exc_info and len(exc_info) >= 2 and exc_info[0] and exc_info[1]:
+        sio.write(f" [{exc_info[0].__name__}: {exc_info[1]}]")
+
+
 def configure_logging(level: str = "INFO") -> None:
     """
     Set up structlog + stdlib logging.
@@ -51,7 +57,11 @@ def configure_logging(level: str = "INFO") -> None:
 
     if is_dev:
         # Human-readable coloured output for local development
-        renderer = structlog.dev.ConsoleRenderer(colors=True)
+        # Use a minimal exception formatter to avoid massive tracebacks in dev
+        renderer = structlog.dev.ConsoleRenderer(
+            colors=True,
+            exception_formatter=minimal_exception_formatter,
+        )
     else:
         # Compact JSON for production / log aggregators
         renderer = structlog.processors.JSONRenderer()

@@ -38,16 +38,13 @@ async def send_frontend_action(
     room = session.room
 
     if room is None:
-        raise ToolError("No LiveKit room is connected — cannot send data to the frontend.")
+        raise ToolError("No LiveKit room connected — cannot send data to frontend.")
 
     # Validate payload is valid JSON
     try:
         payload_data = json.loads(payload)
-    except json.JSONDecodeError:
-        raise ToolError(
-            "The payload must be valid JSON. "
-            f"Received: {payload[:200]}"
-        )
+    except json.JSONDecodeError as exc:
+        raise ToolError(f"payload must be valid JSON: {exc}") from exc
 
     message = json.dumps({
         "type": "client_tool",
@@ -61,9 +58,9 @@ async def send_frontend_action(
             topic="client-tool",
             reliable=True,
         )
-        logger.info("Sent frontend action '%s' to room", action_type)
+        logger.info("frontend action sent action=%s", action_type)
     except Exception as exc:
-        logger.exception("Failed to publish data message")
+        logger.error("frontend publish failed action=%s: %s", action_type, exc)
         raise ToolError(f"Failed to send action to frontend: {exc}") from exc
 
     return f"Successfully sent '{action_type}' action to the user's browser."

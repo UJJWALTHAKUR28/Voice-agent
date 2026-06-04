@@ -1,16 +1,21 @@
 """
 Voice agent pipeline — wires VAD → STT → LLM → TTS into a LiveKit AgentSession.
 
-This module configures all the pipeline components (Silero VAD, Deepgram STT,
-Groq LLM, and Cartesia TTS) and defines the Agent class with registered tools.
-It exposes `create_session()` for the main entry point to call.
+LLM strategy — Groq first, Cerebras fallback:
+  Primary:  Groq  llama-3.3-70b-versatile  (sub-200ms TTFB, free tier)
+  Fallback: Cerebras gpt-oss-120b          (kicks in on 429 rate-limit errors)
 
 Pipeline:
     VAD  — Silero VAD (local, runs on CPU, no API key needed)
     STT  — Deepgram Nova-3 via `livekit-plugins-deepgram` (streaming)
-    LLM  — Groq Llama-3.3-70B via `livekit-plugins-groq` (sub-200ms TTFB)
-    TTS  — Cartesia Sonic-2 via `livekit-plugins-cartesia` (streaming, sub-100ms TTFB)
+    LLM  — Groq Llama-3.3-70B → Cerebras GPT-OSS-120B (fallback)
+    TTS  — Cartesia Sonic-2 via `livekit-plugins-cartesia` (streaming)
     Turn — LiveKit Multilingual turn detector (ML-based, not silence timer)
+
+Cerebras setup:
+    1. Sign up at https://cloud.cerebras.ai
+    2. Get an API key and set CEREBRAS_API_KEY in .env
+    3. Cerebras runs via OpenAI SDK with base_url
 
 Transport:
     All audio flows over WebRTC via LiveKit Cloud rooms.
@@ -23,11 +28,13 @@ import logging
 from pathlib import Path
 
 from livekit.agents import Agent, AgentSession, TurnHandlingOptions
-from livekit.plugins import cartesia, deepgram, groq, silero
+from livekit.agents.llm import FallbackAdapter
+from livekit.agents.tts import FallbackAdapter as TTSFallbackAdapter
+from livekit.plugins import cartesia, deepgram, groq, openai, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
-from agent.tools import get_weather, search_wikipedia, send_frontend_action
-from agent.tools.server_tools import get_news, calculate
+# pipeline.py — FIXED import
+from agent.tools import get_weather, get_news, calculate, send_frontend_action
 
 logger = logging.getLogger("voice-agent.pipeline")
 
@@ -51,6 +58,58 @@ def _load_system_prompt() -> str:
 
 
 # ──────────────────────────────────────────────────────────────────────
+# Fallback-aware LLM wrapper
+# ──────────────────────────────────────────────────────────────────────
+
+def _build_llm():
+    """
+    Return a FallbackAdapter: Groq first, Cerebras if Groq hits 429.
+
+    FallbackAdapter is built into livekit-agents — no extra code needed.
+    It catches retryable errors (including 429 rate-limit) and switches
+    to the next provider transparently mid-conversation.
+
+    Cerebras fallback requires:
+        1. CEREBRAS_API_KEY in .env (get it free from cloud.cerebras.ai)
+        2. livekit-plugins-openai (which we use to talk to Cerebras)
+    """
+    from config.settings import get_settings
+    settings = get_settings()
+
+    primary = groq.LLM(
+        model=settings.groq_model,
+        tool_choice="auto",   
+    )
+
+    # Secondary: Groq's 8B model (has separate rate limits from 70B)
+    secondary = groq.LLM(
+        model="llama-3.1-8b-instant",
+        tool_choice="auto",
+    )
+
+    # Tertiary: Cerebras exposes an OpenAI-compatible API
+    tertiary = openai.LLM(
+        model=settings.cerebras_model,
+        base_url="https://api.cerebras.ai/v1",
+        api_key=settings.cerebras_api_key,
+        tool_choice="auto",
+    )
+
+    llm = FallbackAdapter(
+        llm=[primary, secondary, tertiary],
+        # On the FIRST failure of an LLM, switch to the next one immediately
+        attempt_timeout=6.0,
+    )
+
+    logger.info(
+        "LLM: Groq %s → Groq llama-3.1-8b-instant → Cerebras %s (fallback)",
+        settings.groq_model,
+        settings.cerebras_model,
+    )
+    return llm
+
+
+# ──────────────────────────────────────────────────────────────────────
 # Assistant Agent — carries personality + tools
 # ──────────────────────────────────────────────────────────────────────
 
@@ -59,7 +118,7 @@ class VoiceAssistant(Agent):
     The primary voice agent.
 
     - System instructions are loaded from `prompts/system_prompt.txt`.
-    - Server-side tools (weather, Wikipedia, news, calculate) are registered.
+    - Server-side tools (weather, news, calculate) are registered.
     - The client-tool handler lets the LLM push actions to the browser.
     """
 
@@ -68,7 +127,6 @@ class VoiceAssistant(Agent):
             instructions=_load_system_prompt(),
             tools=[
                 get_weather,
-                search_wikipedia,
                 get_news,
                 calculate,
                 send_frontend_action,
@@ -87,12 +145,11 @@ def create_session() -> AgentSession:
     Components:
         VAD  — Silero VAD (local, runs on CPU)
         STT  — Deepgram Nova-3 via `livekit-plugins-deepgram`
-        LLM  — Groq (Llama-3.3-70B) via `livekit-plugins-groq`
-        TTS  — Cartesia Sonic-2 via `livekit-plugins-cartesia`
-        Turn — MultilingualModel (ML-based turn detection, not silence timer)
+        LLM  — Groq (Llama-3.3-70B) with Cerebras fallback
+        TTS  — Deepgram Aura via `livekit-plugins-deepgram`
+        Turn — MultilingualModel (ML-based turn detection)
 
     All audio transport is WebRTC via LiveKit Cloud.
-    The Cartesia plugin handles WebSocket streaming natively.
     """
     # ── VAD — Silero (local, no API key) ──
     vad = silero.VAD.load()
@@ -103,23 +160,19 @@ def create_session() -> AgentSession:
         language="en",
     )
 
-    # ── LLM — Groq Llama-3.3-70B (sub-200ms first token) ──
-    llm = groq.LLM(
-        model="llama-3.3-70b-versatile",
-    )
+    # ── LLM — Groq primary + Cerebras fallback ──
+    llm = _build_llm()
 
-    # ── TTS — Cartesia Sonic-2 (streaming, sub-100ms TTFB) ──
-    # Voice: "Helpful Woman" — warm, natural, emotionally expressive
-    tts_engine = cartesia.TTS(
-        model="sonic-2",
-        voice="694f9389-aac1-45b6-b726-9d9369183238",
-        language="en",
+    # ── TTS — Cartesia primary + Deepgram fallback ──
+    primary_tts = cartesia.TTS()
+    fallback_tts = deepgram.TTS(
+        model="aura-asteria-en",  # Asteria is a natural, warm female voice
+    )
+    tts_engine = TTSFallbackAdapter(
+        tts=[primary_tts, fallback_tts]
     )
 
     # ── Turn Detection — ML-based multilingual model ──
-    # Uses LiveKit's trained turn detector instead of a simple silence timer.
-    # This understands natural pauses vs actual end-of-turn, so the agent
-    # doesn't interrupt the user mid-sentence.
     turn_detection = MultilingualModel()
 
     session = AgentSession(
@@ -134,8 +187,8 @@ def create_session() -> AgentSession:
 
     logger.info(
         "Pipeline created: VAD=silero | STT=deepgram/nova-3 | "
-        "LLM=groq/llama-3.3-70b | TTS=cartesia/sonic-2 | "
-        "Turn=multilingual-model"
+        "LLM=groq/llama-3.3-70b + cerebras (fallback) | "
+        "TTS=cartesia + deepgram/aura (fallback) | Turn=multilingual-model"
     )
 
     return session

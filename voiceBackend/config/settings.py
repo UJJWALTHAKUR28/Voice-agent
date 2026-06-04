@@ -42,11 +42,21 @@ class Settings(BaseSettings):
     livekit_api_key: str = Field(..., description="LiveKit API key")
     livekit_api_secret: str = Field(..., description="LiveKit API secret")
 
-    # ── LLM — Groq (LLaMA 3.3 70B) ───────────────────────────────────────────
+    # ── LLM — Groq primary (LLaMA 3.3 70B) ──────────────────────────────────
     groq_api_key: str = Field(..., description="Groq API key")
     groq_model: str = Field(
         default="llama-3.3-70b-versatile",
         description="Groq model ID. Use llama-3.3-70b-versatile for best quality.",
+    )
+
+    # ── LLM — Cerebras fallback (used when Groq hits 429 rate-limit) ─────────
+    cerebras_api_key: str = Field(
+        default="",
+        description="Cerebras API key. Free at cloud.cerebras.ai. Used as fallback.",
+    )
+    cerebras_model: str = Field(
+        default="gpt-oss-120b",
+        description="Cerebras model to use as fallback.",
     )
 
     # ── STT — Deepgram ────────────────────────────────────────────────────────
@@ -80,7 +90,10 @@ class Settings(BaseSettings):
     )
     news_api_key: str = Field(
         ...,
-        description="NewsAPI.org API key (free tier: 100 requests/day)",
+        description=(
+            "NewsAPI.org API key — env var: NEWS_API_KEY. "
+            "Free tier: 100 requests/day. Get one at https://newsapi.org"
+        ),
     )
 
     # ── Agent Behaviour ───────────────────────────────────────────────────────
@@ -92,9 +105,6 @@ class Settings(BaseSettings):
     )
 
     # ── Turn Detection ────────────────────────────────────────────────────────
-    # Silence duration (seconds) before LiveKit's built-in turn detector fires.
-    # The ML-based turn detector overrides this for natural pauses, but this
-    # is the hard cap to prevent infinite silence.
     turn_end_silence_s: float = Field(
         default=0.5,
         description="Seconds of silence before turn ends. ML model takes priority.",
