@@ -64,9 +64,9 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
     await session.generate_reply(
         instructions=(
             "Introduce yourself by name. Say something like: "
-        "'Hi! I'm Aria, your voice AI assistant.' Then in one sentence "
-        "mention you can help with weather, news, calculations, and "
-        "general questions. Keep it warm and natural."
+            "'Hi! I'm Jocasta, your voice AI assistant.' Then in one sentence "
+            "mention you can help with weather, news, calculations, and "
+            "general questions. Keep it warm and natural."
         )
     )
 
