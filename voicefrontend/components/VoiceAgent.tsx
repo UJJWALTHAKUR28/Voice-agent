@@ -2,21 +2,16 @@
 //
 // Root component. Owns the LiveKit room connection and wires all subcomponents.
 //
-// Architecture:
-//   VoiceAgent           — fetches token, shows landing → connects room
-//   └── LiveKitRoom      — provides room context to all children
-//       └── AriaSession  — inner UI, subscribes to agent events
-//           ├── StatusIndicator   — listening/thinking/speaking state
-//           ├── BarVisualizer     — Aria's audio waveform
-//           ├── ChatTranscript    — full message list + interim text
-//           ├── TextInput         — typed message bar
-//           ├── VoiceAssistantControlBar — mic toggle + disconnect
-//           ├── RoomAudioRenderer — makes Aria's voice audible
-//           └── ClientToolHandler — browser-side tool execution
+// FIXES:
+//   1. useVoiceAssistant().agentTranscript feeds streaming agent text into
+//      the transcript as it speaks — no waiting for the full message
+//   2. Agent state comes from useVoiceAssistant (ground truth from LiveKit)
+//      AND from our DataPacket events — both are merged
+//   3. Typed text input is properly wired: optimistic add + DataPacket send
 
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
     LiveKitRoom,
     useVoiceAssistant,
@@ -26,7 +21,7 @@ import {
 } from '@livekit/components-react';
 import '@livekit/components-styles';
 
-import { ChatTranscript } from './ChatTranscript'
+import { ChatTranscript } from './ChatTranscript';
 import { TextInput } from './TextInput';
 import { StatusIndicator } from './StatusIndicator';
 import { ClientToolHandler } from './ClientToolHandler';
@@ -34,14 +29,11 @@ import { useAgentEvents } from '@/hooks/useAgentEvents';
 import { useTranscript } from '../hooks/useTranscript';
 import { useTextInput } from '../hooks/useTextInput';
 import type { AgentState } from '@/hooks/useAgentEvents';
+import type { ConversationItem } from '@/hooks/useAgentEvents';
 
-// ── Token API response ──────────────────────────────────────────────────────
+// ── Token API ───────────────────────────────────────────────────────────────
 
-interface TokenResponse {
-    token: string;
-    url: string;
-    room: string;
-}
+interface TokenResponse { token: string; url: string; room: string; }
 
 async function fetchToken(): Promise<TokenResponse> {
     const res = await fetch('/api/token');
@@ -49,47 +41,108 @@ async function fetchToken(): Promise<TokenResponse> {
     return res.json();
 }
 
-// ── Inner session UI — rendered inside LiveKitRoom context ─────────────────
+// ── Inner session UI ────────────────────────────────────────────────────────
 
 function AriaSession() {
-    const { state: lkState, audioTrack } = useVoiceAssistant();
+    const { state: lkState, audioTrack, agentTranscriptions } = useVoiceAssistant();
 
-    // Map LiveKit's VoiceAssistantState to our AgentState type
+    // Ground-truth agent state from LiveKit SDK
     const agentState = (lkState as AgentState) ?? 'idle';
 
-    const {
-        messages,
-        interimText,
-        addItem,
-        updateInterim,
-        addUserTyped,
-    } = useTranscript();
-
+    const { messages, interimText, addItem, updateInterim, addUserTyped } = useTranscript();
     const { sendText } = useTextInput();
 
-    // Subscribe to all agent events
+    // Track last committed agent message to avoid duplicating streamed text
+    const lastAgentMsg = useRef<string>('');
+
+    // ── Stream agent text as it speaks ─────────────────────────────────────
+    // agentTranscriptions gives us each word as Cartesia speaks it.
+    // We feed it to the transcript as an "assistant" message in real-time.
+    useEffect(() => {
+        if (!agentTranscriptions || agentTranscriptions.length === 0) return;
+
+        const text = agentTranscriptions.map(t => t.text).join('').trim();
+        if (!text) return;
+
+        // While speaking, update the last agent message in the list
+        // We use a special "streaming" id so we can replace it
+        setStreamingAgent(text);
+    }, [agentTranscriptions]);
+
+    // Streaming agent message state — shown while speaking, committed when done
+    const [streamingAgentText, setStreamingAgent] = useState('');
+
+    // When agent stops speaking, commit the streamed text as a real message
+    const prevState = useRef<string>('');
+    useEffect(() => {
+        if (prevState.current === 'speaking' && agentState !== 'speaking') {
+            // Agent just finished speaking — commit the streamed text
+            if (streamingAgentText.trim()) {
+                const committed = streamingAgentText.trim();
+                // Only commit if it's different from the last committed agent message
+                if (committed !== lastAgentMsg.current) {
+                    lastAgentMsg.current = committed;
+                    addItem({
+                        role: 'assistant',
+                        content: committed,
+                        timestamp: Date.now(),
+                        id: `agent-stream-${Date.now()}`,
+                    } as ConversationItem);
+                }
+            }
+            setStreamingAgent('');
+        }
+        prevState.current = agentState;
+    }, [agentState, streamingAgentText, addItem]);
+
+    // ── DataPacket events from Python backend ───────────────────────────────
     useAgentEvents({
         onTranscript: (e) => {
+            // User speech — show interim while speaking, clear on final
             updateInterim(e.transcript, e.isFinal);
         },
         onStateChange: (_newState) => {
-            // agentState already comes from useVoiceAssistant state —
-            // this callback is available for additional logic if needed
+            // lkState from useVoiceAssistant is already authoritative.
+            // This is here for any additional side-effects if needed.
         },
         onItemAdded: (item) => {
-            addItem(item);
+            if (item.role === 'user') {
+                // User final transcript committed — add to list
+                addItem(item);
+            } else if (item.role === 'assistant') {
+                // Backend committed the full agent reply.
+                // If we've been streaming it already via agentTranscript,
+                // skip — we already committed it when speaking ended.
+                if (item.content !== lastAgentMsg.current) {
+                    lastAgentMsg.current = item.content;
+                    // Clear any streaming text since we now have the committed version
+                    setStreamingAgent('');
+                    addItem(item);
+                }
+            }
         },
     });
 
-    // Handle typed message submit
+    // ── Typed message handler ───────────────────────────────────────────────
     const handleSend = useCallback((text: string) => {
-        // 1. Show immediately in transcript (optimistic)
-        addUserTyped(text);
-        // 2. Send to agent via DataPacket
-        sendText(text);
+        addUserTyped(text);   // optimistic: show immediately
+        sendText(text);        // send to Python via DataPacket
     }, [addUserTyped, sendText]);
 
     const isConnected = lkState !== 'disconnected';
+
+    // Build the messages list — inject streaming agent text as a live bubble
+    const allMessages = streamingAgentText
+        ? [
+            ...messages,
+            {
+                role: 'assistant' as const,
+                content: streamingAgentText,
+                timestamp: Date.now(),
+                id: 'streaming-now',
+            },
+        ]
+        : messages;
 
     return (
         <div style={{
@@ -113,7 +166,6 @@ function AriaSession() {
                 background: 'var(--bg-elevated)',
                 flexShrink: 0,
             }}>
-                {/* Aria identity */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
                         width: '32px',
@@ -135,25 +187,19 @@ function AriaSession() {
                             : 'none',
                         transition: 'box-shadow 0.3s ease',
                     }}>
-                        A
+                        J
                     </div>
                     <div>
-                        <div style={{
-                            fontWeight: 600,
-                            fontSize: '14px',
-                            letterSpacing: '0.01em',
-                        }}>Aria</div>
-                        <div style={{
-                            fontSize: '11px',
-                            color: 'var(--text-muted)',
-                            fontFamily: 'var(--font-mono)',
-                        }}>voice assistant</div>
+                        <div style={{ fontWeight: 600, fontSize: '14px', letterSpacing: '0.01em' }}>
+                            Jocasta
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                            voice assistant
+                        </div>
                     </div>
                 </div>
 
-                {/* Status + waveform */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {/* Waveform — only visible when speaking */}
                     <div style={{
                         width: '60px',
                         height: '24px',
@@ -167,60 +213,34 @@ function AriaSession() {
                             style={{ width: '100%', height: '100%' }}
                         />
                     </div>
-
                     <StatusIndicator state={agentState} />
                 </div>
             </div>
 
             {/* ── Chat transcript ───────────────────────────────────────── */}
             <ChatTranscript
-                messages={messages}
+                messages={allMessages}
                 interimText={interimText}
                 agentState={agentState}
             />
 
-            {/* ── Controls row ──────────────────────────────────────────── */}
-            <div style={{
-                flexShrink: 0,
-                borderTop: '1px solid var(--border)',
-                background: 'var(--bg-elevated)',
-            }}>
-                {/* Mic controls */}
-                <div style={{
-                    padding: '8px 16px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    borderBottom: '1px solid var(--border)',
-                }}>
+            {/* ── Controls ──────────────────────────────────────────────── */}
+            <div style={{ flexShrink: 0, borderTop: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
+                <div style={{ padding: '8px 16px', display: 'flex', justifyContent: 'center', borderBottom: '1px solid var(--border)' }}>
                     <VoiceAssistantControlBar />
                 </div>
-
-                {/* Text input */}
-                <TextInput
-                    onSend={handleSend}
-                    disabled={!isConnected}
-                />
+                <TextInput onSend={handleSend} disabled={!isConnected} />
             </div>
 
-            {/* Makes Aria's audio audible — must be inside room context */}
             <RoomAudioRenderer />
-            {/* Executes browser-side tool commands from Aria */}
             <ClientToolHandler />
         </div>
     );
 }
 
-// ── Landing screen ─────────────────────────────────────────────────────────
+// ── Landing screen ──────────────────────────────────────────────────────────
 
-function Landing({
-    onStart,
-    loading,
-    error,
-}: {
-    onStart: () => void;
-    loading: boolean;
-    error: string | null;
-}) {
+function Landing({ onStart, loading, error }: { onStart: () => void; loading: boolean; error: string | null; }) {
     return (
         <div style={{
             display: 'flex',
@@ -232,7 +252,6 @@ function Landing({
             padding: '48px 24px',
             textAlign: 'center',
         }}>
-            {/* Logo */}
             <div style={{
                 width: '72px',
                 height: '72px',
@@ -247,39 +266,20 @@ function Landing({
                 color: '#1a0f00',
                 boxShadow: '0 0 0 12px var(--accent-dim), var(--shadow-md)',
             }}>
-                A
+                J
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <h1 style={{
-                    fontSize: '26px',
-                    fontWeight: 700,
-                    letterSpacing: '-0.02em',
-                    margin: 0,
-                }}>
-                    Talk to Aria
+                <h1 style={{ fontSize: '26px', fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>
+                    Talk to Jocasta
                 </h1>
-                <p style={{
-                    color: 'var(--text-secondary)',
-                    fontSize: '14px',
-                    maxWidth: '280px',
-                    margin: 0,
-                    lineHeight: 1.6,
-                }}>
-                    Voice AI assistant — ask about weather, news,
-                    calculations, or anything else.
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', maxWidth: '280px', margin: 0, lineHeight: 1.6 }}>
+                    Voice AI assistant — ask about weather, news, calculations, or anything else.
                 </p>
             </div>
 
-            {/* Capabilities */}
-            <div style={{
-                display: 'flex',
-                gap: '8px',
-                flexWrap: 'wrap',
-                justifyContent: 'center',
-                maxWidth: '320px',
-            }}>
-                {['🌤 Weather', '📰 News', '🧮 Calculate', '📖 Wikipedia'].map(cap => (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '320px' }}>
+                {['🌤 Weather', '📰 News', '🧮 Calculate', '💬 Chat'].map(cap => (
                     <span key={cap} style={{
                         padding: '5px 12px',
                         borderRadius: '9999px',
@@ -326,28 +326,20 @@ function Landing({
                     transition: 'opacity 0.2s, transform 0.15s',
                     boxShadow: loading ? 'none' : '0 4px 20px var(--accent-glow)',
                 }}
-                onMouseEnter={e => {
-                    if (!loading) (e.target as HTMLElement).style.transform = 'scale(1.03)';
-                }}
-                onMouseLeave={e => {
-                    (e.target as HTMLElement).style.transform = 'scale(1)';
-                }}
+                onMouseEnter={e => { if (!loading) (e.target as HTMLElement).style.transform = 'scale(1.03)'; }}
+                onMouseLeave={e => { (e.target as HTMLElement).style.transform = 'scale(1)'; }}
             >
                 {loading ? 'Connecting…' : 'Start Conversation'}
             </button>
 
-            <p style={{
-                fontSize: '11px',
-                color: 'var(--text-muted)',
-                fontFamily: 'var(--font-mono)',
-            }}>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 Mic access required · Works on Chrome + Firefox
             </p>
         </div>
     );
 }
 
-// ── Root VoiceAgent — public export ───────────────────────────────────────
+// ── Root export ─────────────────────────────────────────────────────────────
 
 export function VoiceAgent() {
     const [conn, setConn] = useState<TokenResponse | null>(null);
@@ -360,21 +352,15 @@ export function VoiceAgent() {
         try {
             const data = await fetchToken();
             setConn(data);
-        } catch (e) {
-            setError('Could not connect. Make sure the backend is running on port 8000.');
+        } catch {
+            setError('Could not connect. Make sure the backend is running.');
         } finally {
             setLoading(false);
         }
     }, []);
 
     if (!conn) {
-        return (
-            <Landing
-                onStart={startSession}
-                loading={loading}
-                error={error}
-            />
-        );
+        return <Landing onStart={startSession} loading={loading} error={error} />;
     }
 
     return (

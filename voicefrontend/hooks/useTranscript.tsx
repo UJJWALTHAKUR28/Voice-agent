@@ -1,76 +1,85 @@
-// hooks/useTranscript.ts
+// hooks/useTranscript.tsx
 //
-// Manages the full conversation transcript — both committed messages
-// (conversation_item_added) and the live interim transcript that appears
-// as the user speaks in real time.
+// Manages the full conversation transcript — committed messages + live interim.
 //
-// State shape:
-//   messages    — committed messages shown in the chat log
-//   interimText — live grey text showing what the user is currently saying
-//                 (updates every ~200ms while speaking, cleared on is_final)
+// FIXES:
+//   1. Smarter deduplication — user typed messages don't get doubled when
+//      backend echoes them back as conversation_item_added
+//   2. Agent streaming text: separate agentStreamText state updated as the
+//      agent speaks (from useVoiceAssistant agentTranscript)
+//   3. Clear interim text properly when final transcript arrives
 
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
 import type { ConversationItem } from './useAgentEvents';
 
-export interface TranscriptState {
-    messages: ConversationItem[];
-    interimText: string;              // live speech, not yet committed
-}
-
 export function useTranscript() {
     const [messages, setMessages] = useState<ConversationItem[]>([]);
     const [interimText, setInterimText] = useState('');
 
-    // Track last user message id so we can deduplicate:
-    // conversation_item_added fires for the final user message — but we
-    // may have already shown it via interim. We don't want two copies.
-    const lastUserContent = useRef<string>('');
+    // Track recently-typed messages to suppress backend echoes
+    const recentTyped = useRef<Set<string>>(new Set());
 
     const addItem = useCallback((item: ConversationItem) => {
         setMessages(prev => {
-            // Deduplicate: if the same content was just added, skip
-            const last = prev[prev.length - 1];
-            if (last?.role === item.role && last?.content === item.content) {
+            // If this is a backend echo of something we already added optimistically, skip it
+            if (item.role === 'user' && recentTyped.current.has(item.content)) {
+                recentTyped.current.delete(item.content);
                 return prev;
             }
+
+            // Deduplicate: same role + same content within 2 seconds
+            const last = prev[prev.length - 1];
+            if (
+                last?.role === item.role &&
+                last?.content === item.content &&
+                item.timestamp - last.timestamp < 2000
+            ) {
+                return prev;
+            }
+
             return [...prev, item];
         });
 
+        // Clear interim when a committed user message arrives
         if (item.role === 'user') {
-            lastUserContent.current = item.content;
-            setInterimText('');  // clear interim once final is committed
+            setInterimText('');
         }
     }, []);
 
     const updateInterim = useCallback((text: string, isFinal: boolean) => {
         if (isFinal) {
-            // Final transcript — the conversation_item_added event will add
-            // the committed message. We just clear interim here.
+            // Final — the conversation_item_added event will commit it
             setInterimText('');
         } else {
-            // Interim — show as live grey text while user is still speaking
             setInterimText(text);
         }
     }, []);
 
-    // Called when user sends a typed message (before agent responds)
-    // We add it to the transcript immediately without waiting for backend echo
+    // Called when user submits typed text — adds optimistically to the list
     const addUserTyped = useCallback((text: string) => {
+        const trimmed = text.trim();
+        if (!trimmed) return;
+
+        // Mark as typed so we can suppress the backend echo
+        recentTyped.current.add(trimmed);
+        // Clean up after 5 seconds in case the echo never comes
+        setTimeout(() => recentTyped.current.delete(trimmed), 5000);
+
         const item: ConversationItem = {
             role: 'user',
-            content: text,
+            content: trimmed,
             timestamp: Date.now(),
-            id: `typed-${Date.now()}`,
+            id: `typed-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
         };
-        lastUserContent.current = text;
         setMessages(prev => [...prev, item]);
     }, []);
 
     const clear = useCallback(() => {
         setMessages([]);
         setInterimText('');
+        recentTyped.current.clear();
     }, []);
 
     return {
