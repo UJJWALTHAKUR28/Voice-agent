@@ -2,12 +2,13 @@
 //
 // Root component. Owns the LiveKit room connection and wires all subcomponents.
 //
-// FIXES:
-//   1. useVoiceAssistant().agentTranscript feeds streaming agent text into
-//      the transcript as it speaks — no waiting for the full message
-//   2. Agent state comes from useVoiceAssistant (ground truth from LiveKit)
-//      AND from our DataPacket events — both are merged
-//   3. Typed text input is properly wired: optimistic add + DataPacket send
+// FIX: agentTranscriptions from useVoiceAssistant is a CUMULATIVE array —
+// it grows across the entire session. Previously we joined the whole array
+// each time, so reply #2 would display reply #1's text + reply #2's text.
+//
+// Fix: record `transcriptStartIndex` when the agent transitions INTO
+// 'speaking', then slice from that index so only the current utterance
+// is shown in the streaming bubble.
 
 'use client';
 
@@ -55,31 +56,46 @@ function AriaSession() {
     // Track last committed agent message to avoid duplicating streamed text
     const lastAgentMsg = useRef<string>('');
 
+    // ── FIX: track where the current utterance starts in the cumulative array ──
+    // agentTranscriptions never resets — it accumulates all words spoken since
+    // the room was joined. We capture its length each time the agent begins a
+    // new speaking turn, then slice from that index so only the current reply
+    // is shown in the streaming bubble.
+    const transcriptStartIndex = useRef<number>(0);
+    const prevState = useRef<string>('');
+
     // ── Stream agent text as it speaks ─────────────────────────────────────
-    // agentTranscriptions gives us each word as Cartesia speaks it.
-    // We feed it to the transcript as an "assistant" message in real-time.
     useEffect(() => {
         if (!agentTranscriptions || agentTranscriptions.length === 0) return;
 
-        const text = agentTranscriptions.map(t => t.text).join('').trim();
+        // Slice to only the current utterance
+        const currentChunks = agentTranscriptions.slice(transcriptStartIndex.current);
+        const text = currentChunks.map(t => t.text).join('').trim();
         if (!text) return;
 
-        // While speaking, update the last agent message in the list
-        // We use a special "streaming" id so we can replace it
         setStreamingAgent(text);
     }, [agentTranscriptions]);
 
     // Streaming agent message state — shown while speaking, committed when done
     const [streamingAgentText, setStreamingAgent] = useState('');
 
-    // When agent stops speaking, commit the streamed text as a real message
-    const prevState = useRef<string>('');
+    // State transition handler
     useEffect(() => {
-        if (prevState.current === 'speaking' && agentState !== 'speaking') {
-            // Agent just finished speaking — commit the streamed text
+        const wasNotSpeaking = prevState.current !== 'speaking';
+        const nowSpeaking = agentState === 'speaking';
+        const wasSpeaking = prevState.current === 'speaking';
+        const nowNotSpeaking = agentState !== 'speaking';
+
+        // Agent just STARTED speaking → record start index in cumulative array
+        if (nowSpeaking && wasNotSpeaking) {
+            transcriptStartIndex.current = agentTranscriptions?.length ?? 0;
+            setStreamingAgent(''); // clear any leftover from last turn
+        }
+
+        // Agent just FINISHED speaking → commit the streamed text as a bubble
+        if (wasSpeaking && nowNotSpeaking) {
             if (streamingAgentText.trim()) {
                 const committed = streamingAgentText.trim();
-                // Only commit if it's different from the last committed agent message
                 if (committed !== lastAgentMsg.current) {
                     lastAgentMsg.current = committed;
                     addItem({
@@ -92,30 +108,24 @@ function AriaSession() {
             }
             setStreamingAgent('');
         }
+
         prevState.current = agentState;
-    }, [agentState, streamingAgentText, addItem]);
+    }, [agentState, agentTranscriptions, streamingAgentText, addItem]);
 
     // ── DataPacket events from Python backend ───────────────────────────────
     useAgentEvents({
         onTranscript: (e) => {
-            // User speech — show interim while speaking, clear on final
             updateInterim(e.transcript, e.isFinal);
         },
         onStateChange: (_newState) => {
             // lkState from useVoiceAssistant is already authoritative.
-            // This is here for any additional side-effects if needed.
         },
         onItemAdded: (item) => {
             if (item.role === 'user') {
-                // User final transcript committed — add to list
                 addItem(item);
             } else if (item.role === 'assistant') {
-                // Backend committed the full agent reply.
-                // If we've been streaming it already via agentTranscript,
-                // skip — we already committed it when speaking ended.
                 if (item.content !== lastAgentMsg.current) {
                     lastAgentMsg.current = item.content;
-                    // Clear any streaming text since we now have the committed version
                     setStreamingAgent('');
                     addItem(item);
                 }
@@ -125,8 +135,8 @@ function AriaSession() {
 
     // ── Typed message handler ───────────────────────────────────────────────
     const handleSend = useCallback((text: string) => {
-        addUserTyped(text);   // optimistic: show immediately
-        sendText(text);        // send to Python via DataPacket
+        addUserTyped(text);
+        sendText(text);
     }, [addUserTyped, sendText]);
 
     const isConnected = lkState !== 'disconnected';
