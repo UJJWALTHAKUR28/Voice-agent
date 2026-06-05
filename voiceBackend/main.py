@@ -1,95 +1,88 @@
 """
-Voice Agent — main entry point.
+Voice Agent — entry point.
 
-Starts a LiveKit Agent worker that:
-  1. Connects to a LiveKit room when dispatched
-  2. Spins up the VAD → STT → LLM → TTS pipeline
-  3. Begins listening for user speech
-
-Usage:
-    # Development (connects to LiveKit Cloud, auto-creates rooms)
-    python main.py dev
-
-    # Production
-    python main.py start
-
-    # Local console mode (no browser needed)
-    python main.py console
+    python main.py dev      # development, auto-creates rooms
+    python main.py start    # production
+    python main.py console  # local console mode, no browser needed
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
-from livekit import agents
-from livekit.agents import AgentServer, AutoSubscribe
-
-# ── Ensure the project root is on sys.path so `agent.*` imports work ──
 _PROJECT_ROOT = Path(__file__).parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-# ── Load environment variables BEFORE importing plugins ──
-# Ensures GROQ_API_KEY, OLLAMA_BASE_URL, etc. are available
-# when plugins initialize.
+# Load .env BEFORE importing plugins so all API keys are available
+from dotenv import load_dotenv
 load_dotenv(_PROJECT_ROOT / ".env")
 
-from agent.pipeline import VoiceAssistant, create_session  # noqa: E402
+from livekit import agents
+from livekit.agents import AgentServer, AutoSubscribe
 
-# ── Logging ──
+# Import after dotenv so plugins pick up env vars at import time
+from agent.pipeline import VoiceAssistant, create_session
+from agent.apiHealth import check_all_keys   # FIX: was agent.apiHealth (wrong name)
+
+# ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s  %(name)-28s  %(levelname)-7s  %(message)s",
-    datefmt="%H:%M:%S",
+    level    = logging.INFO,
+    format   = "%(asctime)s  [%(levelname)-7s]  %(name)s — %(message)s",
+    datefmt  = "%H:%M:%S",
+    handlers = [logging.StreamHandler(sys.stdout)],
+    force    = True,
 )
+# Silence noisy third-party loggers
+for _lib in ("httpx", "httpcore", "asyncio", "websockets", "aiohttp"):
+    logging.getLogger(_lib).setLevel(logging.WARNING)
+logging.getLogger("livekit.plugins").setLevel(logging.WARNING)
+logging.getLogger("livekit.agents.llm").setLevel(logging.WARNING)
+
 logger = logging.getLogger("voice-agent")
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Agent Server + RTC session handler
-# ──────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Agent server
+# ─────────────────────────────────────────────────────────────────────────────
 
 server = AgentServer()
 
 
 @server.rtc_session(agent_name="voice-agent")
-async def voice_agent_session(ctx: agents.JobContext):
-    """
-    Called once per LiveKit room/job.
+async def voice_agent_session(ctx: agents.JobContext) -> None:
+    """Called once per LiveKit room. Builds the pipeline and starts the agent."""
+    logger.info("session start — room=%s", ctx.room.name)
 
-    1. Connect to the room (audio-only subscription).
-    2. Build the pipeline via `create_session()`.
-    3. Start the session with our VoiceAssistant agent.
-    4. Generate an initial greeting.
-    """
-    logger.info("New session — room=%s", ctx.room.name)
-
-    # Connect to the room
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
 
-    # Build the pipeline
     session = create_session()
-
-    # Start the agent in the room
-    await session.start(
-        room=ctx.room,
-        agent=VoiceAssistant(),
-    )
-
-    # Generate the initial greeting after the agent is live
+    await session.start(room=ctx.room, agent=VoiceAssistant())
     await session.generate_reply(
-        instructions="Greet the user warmly and let them know what you can help with."
+        instructions=(
+            "Greet the user warmly and briefly mention you can help with "
+            "weather, news, calculations, and general questions."
+        )
     )
 
-    logger.info("Agent is live in room=%s", ctx.room.name)
+    logger.info("agent live — room=%s", ctx.room.name)
 
 
-# ──────────────────────────────────────────────────────────────────────
-# CLI entry point  (python main.py dev | start | console)
-# ──────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Entry point
+# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # asyncio.run() here is safe — agents.cli.run_app() creates its own
+    # event loop separately, so there is no conflict.
+    all_ok, _ = asyncio.run(check_all_keys())
+
+    if not all_ok:
+        # Required key is missing/invalid — abort before wasting time connecting
+        print("  Aborting. Fix the keys above and restart.\n")
+        sys.exit(1)
+
     agents.cli.run_app(server)
