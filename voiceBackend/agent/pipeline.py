@@ -67,7 +67,7 @@ def _load_system_prompt() -> str:
     except FileNotFoundError:
         logger.warning("system_prompt.txt not found — using built-in default.")
         return (
-            "You are Aria, a warm and intelligent voice AI assistant. "
+            "You are Jocasta, a warm and intelligent voice AI assistant. "
             "Keep responses concise, natural, and conversational. "
             "Never use bullet points or markdown — speak in plain prose."
         )
@@ -172,25 +172,38 @@ def _build_llm() -> FallbackAdapter:
 def _build_tts() -> TTSFallbackAdapter | lk_inference.TTS:
     """
     Chain:
-      1. lk/cartesia/sonic-3      — best quality, 24kHz
-      2. lk/cartesia/sonic-turbo  — lower latency
-      3. lk/deepgram/aura-2       — separate provider
+      1. lk/cartesia/sonic-3      — best quality, 24kHz, with custom voice
+      2. lk/cartesia/sonic-turbo  — lower latency, same voice
+      3. lk/deepgram/aura-2       — separate provider (voice ID not applicable)
       4. cartesia plugin direct   — bypasses LiveKit inference, uses CARTESIA_API_KEY
 
-    Same note as STT: the plugin instance must go in TTSFallbackAdapter,
-    NOT inside the fallback= list of lk_inference.TTS.
+    Voice ID ec1e269e-9ca0-402f-8a18-58e0e022355a is applied to all
+    Cartesia tiers. deepgram/aura-2 uses its own voice (no Cartesia voice ID).
+
+    For lk_inference.TTS fallback entries, voice is passed via FallbackModel
+    TypedDict: {"model": "...", "voice": "..."}.
+    For the direct cartesia plugin, voice is passed as the voice= param.
     """
+    _VOICE_ID = "ec1e269e-9ca0-402f-8a18-58e0e022355a"
+
     lk_tts = lk_inference.TTS(
         model    = "cartesia/sonic-3",
+        voice    = _VOICE_ID,
         language = "en",
         fallback = [
-            "cartesia/sonic-turbo",
+            # FallbackModel TypedDict — must include voice here too
+            {"model": "cartesia/sonic-turbo", "voice": _VOICE_ID},
+            # deepgram has no Cartesia voice — plain string is fine
             "deepgram/aura-2",
         ],
     )
 
-    # Direct plugin as absolute last resort
-    plugin_tts = cartesia.TTS(model="sonic-3", language="en")
+    # Direct plugin fallback — uses voice= kwarg
+    plugin_tts = cartesia.TTS(
+        model    = "sonic-3",
+        voice    = _VOICE_ID,
+        language = "en",
+    )
 
     return TTSFallbackAdapter(tts=[lk_tts, plugin_tts])
 
@@ -200,7 +213,7 @@ def _build_tts() -> TTSFallbackAdapter | lk_inference.TTS:
 # ─────────────────────────────────────────────────────────────────────────────
 
 class VoiceAssistant(Agent):
-    """Aria — voice assistant with full tool access."""
+    """Jocasta — voice assistant with full tool access."""
 
     def __init__(self) -> None:
         super().__init__(

@@ -114,6 +114,6 @@ def get_logger(name: str) -> structlog.stdlib.BoundLogger:
 
     Example:
         logger = get_logger(__name__)
-        logger.info("agent.started", room="my-room", agent="Aria")
+        logger.info("agent.started", room="my-room", agent="Jocasta")
     """
     return structlog.get_logger(name)

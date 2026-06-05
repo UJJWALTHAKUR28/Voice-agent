@@ -1,10 +1,10 @@
 """
 config/settings.py
 ──────────────────
-Single source of truth for all environment-variable configuration.
+Single source of truth for all environment-vJocastable configuration.
 
-Uses pydantic-settings so every variable is type-validated at startup.
-Missing required variables raise a clear error with the variable name —
+Uses pydantic-settings so every vJocastable is type-validated at startup.
+Missing required vJocastables raise a clear error with the vJocastable name —
 no silent None's propagating through the system.
 
 Usage:
@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     """
     All configuration for the Voice AI Agent.
 
-    Required variables must be set in .env or the environment.
-    Optional variables have sensible defaults.
+    Required vJocastables must be set in .env or the environment.
+    Optional vJocastables have sensible defaults.
     """
 
     model_config = SettingsConfigDict(
@@ -97,7 +97,7 @@ class Settings(BaseSettings):
     )
 
     # ── Agent Behaviour ───────────────────────────────────────────────────────
-    agent_name: str = Field(default="Aria", description="Agent display name")
+    agent_name: str = Field(default="Jocasta", description="Agent display name")
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field(
         default="INFO",

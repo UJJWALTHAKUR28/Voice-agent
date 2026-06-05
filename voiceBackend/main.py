@@ -63,8 +63,10 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
     await session.start(room=ctx.room, agent=VoiceAssistant())
     await session.generate_reply(
         instructions=(
-            "Greet the user warmly and briefly mention you can help with "
-            "weather, news, calculations, and general questions."
+            "Introduce yourself by name. Say something like: "
+        "'Hi! I'm Aria, your voice AI assistant.' Then in one sentence "
+        "mention you can help with weather, news, calculations, and "
+        "general questions. Keep it warm and natural."
         )
     )
 
