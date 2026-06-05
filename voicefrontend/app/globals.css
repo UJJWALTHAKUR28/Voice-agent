@@ -1,0 +1,201 @@
+@import "tailwindcss";
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Design system — Aria Voice Agent                                             */
+/* Aesthetic: deep-space dark, warm amber accents, refined mono typography     */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+
+
+/* ── CSS variables ── */
+:root {
+    /* Dark theme (default) */
+    --bg-base: #0a0a0f;
+    --bg-surface: #111118;
+    --bg-elevated: #18181f;
+    --bg-glass: rgba(255, 255, 255, 0.04);
+    --bg-glass-hover: rgba(255, 255, 255, 0.07);
+
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.15);
+
+    --text-primary: #f0f0f5;
+    --text-secondary: #8888a0;
+    --text-muted: #55556a;
+
+    --accent: #f0a050;
+    /* warm amber — Aria's colour */
+    --accent-dim: rgba(240, 160, 80, 0.15);
+    --accent-glow: rgba(240, 160, 80, 0.25);
+
+    --state-listening: #34d399;
+    --state-thinking: #a78bfa;
+    --state-speaking: #60a5fa;
+    --state-idle: #55556a;
+
+    --user-bubble: #1e1e2e;
+    --agent-bubble: #151520;
+
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+
+    --font-sans: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+/* Light theme — toggled by Aria's change_theme tool */
+html.light,
+[data-theme="light"] {
+    --bg-base: #f5f4f0;
+    --bg-surface: #ffffff;
+    --bg-elevated: #fafaf8;
+    --bg-glass: rgba(0, 0, 0, 0.03);
+    --bg-glass-hover: rgba(0, 0, 0, 0.06);
+
+    --border: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.15);
+
+    --text-primary: #1a1a24;
+    --text-secondary: #6060780;
+    --text-muted: #a0a0b0;
+
+    --accent: #d07820;
+    --accent-dim: rgba(208, 120, 32, 0.12);
+    --accent-glow: rgba(208, 120, 32, 0.20);
+
+    --user-bubble: #eff0f5;
+    --agent-bubble: #ffffff;
+}
+
+/* ── Reset & base ── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 4px;
+}
+
+/* ── LiveKit overrides — neutralise default styles ── */
+.lk-room-container {
+    background: transparent !important;
+}
+
+.lk-control-bar {
+    background: transparent !important;
+    border: none !important;
+}
+
+.lk-button {
+    background: var(--bg-glass) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-primary) !important;
+    border-radius: var(--radius-md) !important;
+    transition: background 0.2s !important;
+}
+
+.lk-button:hover {
+    background: var(--bg-glass-hover) !important;
+}
+
+.lk-button[data-lk-active="true"] {
+    background: var(--accent-dim) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+}
+
+/* ── Animations ── */
+@keyframes pulse-ring {
+    0% {
+        box-shadow: 0 0 0 0 var(--accent-glow);
+    }
+
+    70% {
+        box-shadow: 0 0 0 18px transparent;
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        opacity: 0.4;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.4;
+    }
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+.fade-up {
+    animation: fade-up 0.25s ease forwards;
+}
+
+.shimmer {
+    animation: shimmer 1.5s ease infinite;
+}
+
+.cursor-blink {
+    animation: blink 1s step-end infinite;
+}
