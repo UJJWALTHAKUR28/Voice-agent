@@ -69,71 +69,85 @@
     --shadow-xl: 0 16px 60px rgba(0, 0, 0, 0.9);
 }
 
-/* ── Light theme — WARM AMBER/COPPER ─────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* LIGHT THEME — DEEP SAGE + WARM MOSS                                        */
 /*                                                                              */
-/*   Philosophy: warm ivory paper base, deep ink text,                          */
-/*   warm amber/copper accent (matches the gold sphere — feels coherent).       */
-/*   Sphere stays gold/amber — now the UI chrome MATCHES it.                    */
-/*   Result: feels premium, editorial, warm — not cold blue-corporate.          */
+/*   Philosophy: Fresh white paper base, deep sage / moss accent,               */
+/*   rich near-black ink text. Natural, premium, editorial.                     */
+/*                                                                              */
+/*   Palette:                                                                    */
+/*     Base:    Clean white / warm off-white — #ffffff, #f8faf8               */
+/*     Accent:  Deep sage — #1a5c3a (deep), #2e7d52 (mid), #52a871 (bright)  */
+/*     Warm:    Moss gold — #6b7c3c (warm olive for variety)                  */
+/*     Text:    Near-black — #0f1a12 (primary), #354a36 (secondary)           */
+/*     Borders: Sage-tinted — rgba(30,80,50,0.12–0.28)                        */
 /*                                                                              */
 [data-theme="light"],
 html.light {
-    /* Surfaces — warm ivory parchment */
-    --bg-void: #f5f2ec;
-    --bg-base: #f9f6f0;
-    --bg-surface: #fdfcf8;
+    /* Surfaces — clean white with sage tint */
+    --bg-void: #eef4ee;
+    --bg-base: #f2f7f2;
+    --bg-surface: #f8fbf8;
     --bg-raised: #ffffff;
-    --bg-overlay: #ece8e0;
-    --bg-glass: rgba(30, 20, 8, 0.04);
-    --bg-glass-hover: rgba(30, 20, 8, 0.08);
+    --bg-overlay: #e4ede5;
+    --bg-glass: rgba(15, 40, 20, 0.03);
+    --bg-glass-hover: rgba(15, 40, 20, 0.065);
 
-    /* Borders — warm amber-tinted */
-    --border-dim: rgba(140, 90, 20, 0.10);
-    --border-mid: rgba(140, 90, 20, 0.18);
-    --border-strong: rgba(140, 90, 20, 0.30);
+    /* Borders — deep sage-tinted */
+    --border-dim: rgba(30, 80, 50, 0.09);
+    --border-mid: rgba(30, 80, 50, 0.16);
+    --border-strong: rgba(30, 80, 50, 0.28);
 
-    /* Text — rich near-black ink */
-    --text-primary: #18120a;
-    --text-secondary: #5a4a30;
-    --text-muted: #9a8060;
-    --text-ghost: #c8b898;
+    /* Text — deep forest ink */
+    --text-primary: #0f1a12;
+    --text-secondary: #354a36;
+    --text-muted: #7a9478;
+    --text-ghost: #b8ccb8;
 
-    /* LIGHT THEME ACCENT: warm amber/copper — matches the sphere            */
-    --gold: #b07020;
-    /* deep warm amber for text/borders             */
-    --gold-bright: #d08828;
-    /* hover/active state                           */
-    --gold-dim: rgba(176, 112, 32, 0.10);
-    --gold-glow: rgba(176, 112, 32, 0.22);
-    --gold-halo: rgba(176, 112, 32, 0.06);
+    /* PRIMARY ACCENT: Deep Sage / Emerald Forest */
+    --gold: #1a5c3a;
+    /* deep forest — primary CTA, borders     */
+    --gold-bright: #2e7d52;
+    /* mid sage — hover, active               */
+    --gold-dim: rgba(26, 92, 58, 0.08);
+    --gold-glow: rgba(26, 92, 58, 0.18);
+    --gold-halo: rgba(26, 92, 58, 0.05);
 
-    /* State colours — warm versions for light bg */
-    --c-idle: #b09070;
-    --c-listen: #059669;
-    /* rich green, visible on cream */
-    --c-think: #c87820;
-    /* warm amber for thinking                 */
-    --c-speak: #c87820;
-    /* same warm amber for speaking            */
+    /* Secondary accents */
+    --sage-mid: #52a871;
+    /* lighter sage for highlights            */
+    --moss: #6b7c3c;
+    /* warm olive accent                      */
+    --sage-pale: #c8dfc8;
+    /* very light sage for backgrounds        */
+
+    /* State colours — natural forest palette */
+    --c-idle: #7a9478;
+    --c-listen: #2e7d52;
+    /* sage green listening                   */
+    --c-think: #6b7c3c;
+    /* warm moss thinking                     */
+    --c-speak: #1a5c3a;
+    /* deep forest speaking                   */
 
     /* Bubbles */
-    --bubble-user: rgba(176, 112, 32, 0.07);
-    --bubble-agent: rgba(255, 255, 255, 0.95);
+    --bubble-user: rgba(26, 92, 58, 0.07);
+    --bubble-agent: rgba(255, 255, 255, 0.96);
 
     /* Bottom bar */
-    --bar-bg: rgba(249, 246, 240, 0.97);
-    --bar-border: rgba(140, 90, 20, 0.10);
+    --bar-bg: rgba(242, 247, 242, 0.97);
+    --bar-border: rgba(30, 80, 50, 0.09);
 
     /* Navbar */
-    --nav-bg: rgba(248, 245, 238, 0.94);
-    --nav-border: rgba(140, 90, 20, 0.08);
+    --nav-bg: rgba(248, 251, 248, 0.96);
+    --nav-border: rgba(30, 80, 50, 0.07);
 
-    /* Shadows — warm amber-tinted */
-    --shadow-xs: 0 1px 2px rgba(60, 40, 10, 0.06);
-    --shadow-sm: 0 2px 8px rgba(60, 40, 10, 0.09);
-    --shadow-md: 0 4px 20px rgba(60, 40, 10, 0.11);
-    --shadow-lg: 0 8px 40px rgba(60, 40, 10, 0.13);
-    --shadow-xl: 0 16px 60px rgba(60, 40, 10, 0.15);
+    /* Shadows — cool sage-tinted */
+    --shadow-xs: 0 1px 3px rgba(15, 40, 20, 0.07);
+    --shadow-sm: 0 2px 8px rgba(15, 40, 20, 0.10);
+    --shadow-md: 0 4px 20px rgba(15, 40, 20, 0.12);
+    --shadow-lg: 0 8px 40px rgba(15, 40, 20, 0.14);
+    --shadow-xl: 0 16px 60px rgba(15, 40, 20, 0.16);
 }
 
 /* ── Reset ────────────────────────────────────────────────────────────────── */
@@ -400,6 +414,54 @@ body {
     }
 }
 
+@keyframes card-float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes sage-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(26, 92, 58, 0.25);
+    }
+
+    50% {
+        box-shadow: 0 0 0 10px rgba(26, 92, 58, 0);
+    }
+}
+
+@keyframes sage-glow-pulse {
+
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+@keyframes leaf-drift {
+
+    0%,
+    100% {
+        transform: rotate(-2deg) translateY(0);
+    }
+
+    50% {
+        transform: rotate(2deg) translateY(-4px);
+    }
+}
+
 .fade-up {
     animation: fade-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -416,7 +478,7 @@ body {
     animation: pulse-soft 2s ease infinite;
 }
 
-/* ── LiveKit overrides — adapts to both themes ────────────────────────────── */
+/* ── LiveKit overrides ────────────────────────────────────────────────────── */
 .lk-room-container {
     background: transparent !important;
 }
@@ -464,41 +526,47 @@ body {
     color: #fca5a5 !important;
 }
 
-/* ── Light mode LiveKit overrides — warm amber style ─────────────────────── */
+/* ── LIGHT MODE LiveKit — Deep Sage style ────────────────────────────────── */
 [data-theme="light"] .lk-button,
 html.light .lk-button {
-    background: var(--bg-raised) !important;
-    border-color: var(--border-mid) !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(26, 92, 58, 0.16) !important;
     color: var(--text-primary) !important;
-    box-shadow: 0 1px 4px rgba(60, 40, 10, 0.07) !important;
+    box-shadow: 0 1px 4px rgba(15, 40, 20, 0.09), 0 0 0 0 rgba(26, 92, 58, 0) !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+    backdrop-filter: blur(12px) !important;
 }
 
 [data-theme="light"] .lk-button:hover,
 html.light .lk-button:hover {
-    background: var(--bg-overlay) !important;
-    border-color: var(--border-strong) !important;
-    color: var(--text-primary) !important;
+    background: rgba(26, 92, 58, 0.06) !important;
+    border-color: rgba(26, 92, 58, 0.32) !important;
+    color: var(--gold) !important;
+    box-shadow: 0 2px 10px rgba(26, 92, 58, 0.18), 0 0 0 3px rgba(26, 92, 58, 0.06) !important;
+    transform: translateY(-1px) !important;
 }
 
 [data-theme="light"] .lk-button[data-lk-active="true"],
 html.light .lk-button[data-lk-active="true"] {
-    background: var(--gold-dim) !important;
-    border-color: var(--gold) !important;
+    background: rgba(26, 92, 58, 0.09) !important;
+    border-color: rgba(26, 92, 58, 0.38) !important;
     color: var(--gold) !important;
+    box-shadow: 0 0 0 3px rgba(26, 92, 58, 0.10) !important;
 }
 
 [data-theme="light"] .lk-disconnect-button,
 html.light .lk-disconnect-button {
-    background: rgba(180, 40, 40, 0.07) !important;
-    border-color: rgba(180, 40, 40, 0.25) !important;
-    color: #c03030 !important;
+    background: rgba(170, 40, 40, 0.06) !important;
+    border-color: rgba(170, 40, 40, 0.22) !important;
+    color: #a83232 !important;
 }
 
 [data-theme="light"] .lk-disconnect-button:hover,
 html.light .lk-disconnect-button:hover {
-    background: rgba(180, 40, 40, 0.13) !important;
-    border-color: rgba(180, 40, 40, 0.40) !important;
-    color: #a02020 !important;
+    background: rgba(170, 40, 40, 0.12) !important;
+    border-color: rgba(170, 40, 40, 0.36) !important;
+    color: #8b1f1f !important;
 }
 
 /* Mic muted */
@@ -510,9 +578,9 @@ html.light .lk-disconnect-button:hover {
 
 [data-theme="light"] .lk-button[data-lk-source="microphone"][data-lk-enabled="false"],
 html.light .lk-button[data-lk-source="microphone"][data-lk-enabled="false"] {
-    background: rgba(180, 40, 40, 0.07) !important;
-    border-color: rgba(180, 40, 40, 0.25) !important;
-    color: #c03030 !important;
+    background: rgba(170, 40, 40, 0.06) !important;
+    border-color: rgba(170, 40, 40, 0.22) !important;
+    color: #a83232 !important;
 }
 
 .lk-control-bar *,
@@ -533,7 +601,7 @@ html.light .lk-button[data-lk-source="microphone"][data-lk-enabled="false"] {
 
 [data-theme="light"] .noise-overlay,
 html.light .noise-overlay {
-    opacity: 0.012;
+    opacity: 0.016;
 }
 
 /* ── Smooth theme transitions ─────────────────────────────────────────────── */
@@ -550,18 +618,17 @@ input {
         box-shadow 0.35s ease !important;
 }
 
-/* ── Light theme: sphere canvas — warm amber glow ────────────────────────── */
-/* Sphere is always gold/amber — in light mode boost the warm drop-shadow.     */
+/* ── Light theme: sphere canvas — deep sage glow ─────────────────────────── */
 [data-theme="light"] canvas,
 html.light canvas {
-    filter: drop-shadow(0 0 32px rgba(176, 112, 32, 0.28)) drop-shadow(0 0 80px rgba(176, 112, 32, 0.10)) !important;
+    filter:
+        drop-shadow(0 0 24px rgba(26, 92, 58, 0.28)) drop-shadow(0 0 60px rgba(26, 92, 58, 0.10)) !important;
 }
 
 /* ── Landing page: hero text gradient in light mode ──────────────────────── */
-/* Warm dark brown-to-amber gradient for large hero text on parchment          */
 [data-theme="light"] h1,
 html.light h1 {
-    background: linear-gradient(160deg, #18120a 0%, #4a3010 60%, #8a5820 100%);
+    background: linear-gradient(160deg, #0f1a12 0%, #1a5c3a 50%, #52a871 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -575,16 +642,15 @@ html.light h1 {
     background-clip: text;
 }
 
-/* ── Sphere containers: ensure no glow clipping ──────────────────────────── */
+/* ── Sphere containers ────────────────────────────────────────────────────── */
 canvas {
     overflow: visible;
 }
 
-/* ── Light mode: global button improvements ──────────────────────────────── */
-/* Give all plain buttons in light mode better contrast and warmth            */
+/* ── Light mode: global button improvements — Deep Sage style ───────────── */
 [data-theme="light"] button:not(.lk-button),
 html.light button:not(.lk-button) {
-    border-color: var(--border-mid);
+    border-color: rgba(26, 92, 58, 0.18);
     color: var(--text-secondary);
 }
 
@@ -593,16 +659,18 @@ html.light button:not(.lk-button):hover {
     border-color: var(--gold);
     color: var(--gold);
     background: var(--gold-dim);
+    box-shadow: 0 2px 10px rgba(26, 92, 58, 0.18);
 }
 
-/* ── Light mode: form inputs better contrast ─────────────────────────────── */
+/* ── Light mode: form inputs ─────────────────────────────────────────────── */
 [data-theme="light"] textarea,
 html.light textarea,
 [data-theme="light"] input,
 html.light input {
-    background: var(--bg-raised) !important;
-    border-color: var(--border-mid) !important;
+    background: #ffffff !important;
+    border-color: rgba(26, 92, 58, 0.18) !important;
     color: var(--text-primary) !important;
+    box-shadow: 0 1px 4px rgba(15, 40, 20, 0.07) !important;
 }
 
 [data-theme="light"] textarea:focus,
@@ -610,11 +678,18 @@ html.light textarea:focus,
 [data-theme="light"] input:focus,
 html.light input:focus {
     border-color: var(--gold) !important;
-    box-shadow: 0 0 0 3px var(--gold-dim) !important;
+    box-shadow: 0 0 0 3px rgba(26, 92, 58, 0.10), 0 1px 4px rgba(15, 40, 20, 0.07) !important;
+    outline: none !important;
 }
 
-/* ── Light mode: atmospheric grid warm tint ──────────────────────────────── */
-[data-theme="light"] .noise-overlay,
-html.light .noise-overlay {
-    opacity: 0.01;
+/* ── Light mode: scan line — deep sage tint ──────────────────────────────── */
+[data-theme="light"] .scan-line-inner {
+    background: linear-gradient(90deg, transparent, rgba(26, 92, 58, 0.05), rgba(26, 92, 58, 0.10), rgba(26, 92, 58, 0.05), transparent) !important;
+}
+
+/* ── Light mode: selection highlight ─────────────────────────────────────── */
+[data-theme="light"] ::selection,
+html.light ::selection {
+    background: rgba(26, 92, 58, 0.15);
+    color: var(--text-primary);
 }

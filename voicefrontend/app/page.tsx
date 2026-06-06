@@ -77,15 +77,14 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
       const isLight = document.documentElement.hasAttribute('data-theme') ||
         document.documentElement.classList.contains('light');
       if (isLight) {
-        // Light mode: warm amber/copper — matches the CSS --gold var
-        // The sphere should feel coherent with the UI, not blue
+        // Light mode: deep sage and moss colors to match CSS variables
         return {
-          nodeColor: 'rgba(176,112,32,',
-          edgeMid: 'rgba(200,140,40,',
-          edgeEnd: 'rgba(160,100,20,',
-          ringColor: 'rgba(176,112,32,',
-          haloColor: 'rgba(176,112,32,',
-          blipColor: 'rgba(45,212,160,',
+          nodeColor: 'rgba(46, 125, 82,',
+          edgeMid: 'rgba(46, 125, 82,',
+          edgeEnd: 'rgba(26, 92, 58,',
+          ringColor: 'rgba(26, 92, 58,',
+          haloColor: 'rgba(26, 92, 58,',
+          blipColor: 'rgba(107, 124, 60,',
         };
       }
       return {

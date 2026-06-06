@@ -32,10 +32,6 @@ const NAV_LINKS = [
         href: '/chat', label: 'Interface',
         icon: <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 3A1.5 1.5 0 013 1.5h7A1.5 1.5 0 0111.5 3v5A1.5 1.5 0 0110 9.5H7.5L6.5 11 5.5 9.5H3A1.5 1.5 0 011.5 8V3z" stroke="currentColor" strokeWidth="1.15" strokeLinecap="round" strokeLinejoin="round" /></svg>
     },
-    {
-        href: '/settings', label: 'Settings',
-        icon: <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="1.5" stroke="currentColor" strokeWidth="1.15" /><path d="M6.5 1v1M6.5 11v1M1 6.5h1M11 6.5h1M2.55 2.55l.7.7M9.75 9.75l.7.7M2.55 10.45l.7-.7M9.75 3.25l.7-.7" stroke="currentColor" strokeWidth="1.15" strokeLinecap="round" /></svg>
-    },
 ];
 
 export function Navbar() {
