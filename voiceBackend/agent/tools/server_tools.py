@@ -13,9 +13,9 @@ FIX APPLIED (livekit-agents v1.5.x + Groq llama-3.3-70b):
     The LLM is guided via docstring to always supply a value.
 
 Tools:
-  1. get_weather(city)             → OpenWeatherMap current conditions
+  1. get_weather(city)             → OpenWeatherMap current conditions + sends weather_card
   2. get_news(topic, count)        → NewsAPI.org latest headlines
-  3. calculate(expression)         → Safe AST math evaluator (no eval())
+  3. calculate(expression)         → Safe AST math evaluator + sends calculator_card
 
 API keys are read from settings (pydantic-settings / .env):
   OPENWEATHER_API_KEY  — free tier sufficient
@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import json
 import math
 import operator
 from typing import Any
@@ -65,6 +66,34 @@ async def close_http_client() -> None:
         await _http_client.aclose()
 
 
+async def _push_frontend_card(context: RunContext, action_type: str, data: dict) -> None:
+    """Silently push a UI card to the frontend. Errors are swallowed — card is optional."""
+    try:
+        session = context.session
+        
+        if hasattr(session, "room_io") and session.room_io is not None:
+            room = session.room_io.room
+        else:
+            room = getattr(session, "room", None)
+            
+        if room is None:
+            return
+
+        message = json.dumps({
+            "type": "client_tool",
+            "action": action_type,
+            "data": data,
+        })
+        await room.local_participant.publish_data(
+            payload=message.encode("utf-8"),
+            topic="client-tool",
+            reliable=True,
+        )
+        logger.info("auto-pushed frontend card action=%s", action_type)
+    except Exception as exc:
+        logger.warning("auto-push card failed action=%s: %s", action_type, exc)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool 1 — get_weather
 # ─────────────────────────────────────────────────────────────────────────────
@@ -73,6 +102,7 @@ async def close_http_client() -> None:
 async def get_weather(context: RunContext, city: str) -> dict[str, Any]:
     """
     Fetch current weather conditions for a city from OpenWeatherMap.
+    Automatically sends a weather_card to the frontend UI after fetching.
 
     Args:
         city: City name to get weather for, e.g. London, New York, Mumbai, Tokyo
@@ -129,6 +159,10 @@ async def get_weather(context: RunContext, city: str) -> dict[str, Any]:
         }
 
         logger.info("tool.get_weather.success", city=result["city"], temp=temp_c)
+
+        # Auto-push the weather card to the frontend
+        await _push_frontend_card(context, "weather_card", result)
+
         return result
 
     except asyncio.TimeoutError:
@@ -156,11 +190,6 @@ def _weather_emoji(weather_id: int) -> str:
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool 2 — get_news
-#
-# FIX: count parameter has NO default value.
-# Previously `count: int = 3` caused livekit-agents strict schema builder to
-# emit "type": ["integer", "null"] — Groq rejects this and outputs raw text.
-# Now count is required; LLM is told to always pass 3 if the user doesn't specify.
 # ─────────────────────────────────────────────────────────────────────────────
 
 @function_tool()
@@ -178,7 +207,7 @@ async def get_news(context: RunContext, topic: str, count: int) -> dict[str, Any
         return {"error": "No news topic provided."}
 
     topic = topic.strip()
-    count = max(1, min(5, count))   # clamp defensively — LLM might send out-of-range
+    count = max(1, min(5, count))
     logger.info("tool.get_news", topic=topic, count=count)
 
     try:
@@ -187,10 +216,10 @@ async def get_news(context: RunContext, topic: str, count: int) -> dict[str, Any
                 "https://newsapi.org/v2/everything",
                 params={
                     "q":        topic,
-                    "apiKey":   settings.news_api_key,  # capital K — NewsAPI requirement
+                    "apiKey":   settings.news_api_key,
                     "language": "en",
-                    "pageSize": count,                  # NewsAPI uses pageSize, not size
-                    "sortBy":   "publishedAt",          # newest first
+                    "pageSize": count,
+                    "sortBy":   "publishedAt",
                 },
             ),
             timeout=TOOL_TIMEOUT,
@@ -198,7 +227,6 @@ async def get_news(context: RunContext, topic: str, count: int) -> dict[str, Any
         resp.raise_for_status()
         data = resp.json()
 
-        # NewsAPI top-level status gate
         if data.get("status") != "ok":
             msg = data.get("message", "Unknown error")
             logger.warning("get_news API error topic=%s: %s", topic, msg)
@@ -239,9 +267,6 @@ async def get_news(context: RunContext, topic: str, count: int) -> dict[str, Any
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool 3 — calculate
-#
-# Uses Python's AST module to safely parse and evaluate math expressions.
-# Never calls eval() — only whitelisted operators and functions are allowed.
 # ─────────────────────────────────────────────────────────────────────────────
 
 _SAFE_OPERATORS: dict[type, Any] = {
@@ -274,32 +299,26 @@ _SAFE_FUNCTIONS: dict[str, Any] = {
 
 def _safe_eval(node: ast.AST) -> float:
     """Recursively evaluate a whitelisted AST node."""
-    # Numeric literal
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
         return float(node.value)
-    # Python < 3.8 compatibility
     if isinstance(node, ast.Num):
         return float(node.n)  # type: ignore[attr-defined]
-    # Named constant (pi, e)
     if isinstance(node, ast.Name):
         if node.id in _SAFE_FUNCTIONS:
             v = _SAFE_FUNCTIONS[node.id]
             if not callable(v):
                 return float(v)
         raise ValueError(f"Unknown name: {node.id!r}")
-    # Binary operation: a + b, a * b, etc.
     if isinstance(node, ast.BinOp):
         op = _SAFE_OPERATORS.get(type(node.op))
         if op is None:
             raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
         return op(_safe_eval(node.left), _safe_eval(node.right))
-    # Unary operation: -x, +x
     if isinstance(node, ast.UnaryOp):
         op = _SAFE_OPERATORS.get(type(node.op))
         if op is None:
             raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
         return op(_safe_eval(node.operand))
-    # Function call: sqrt(x), sin(x), etc.
     if isinstance(node, ast.Call):
         if not isinstance(node.func, ast.Name):
             raise ValueError("Only simple function calls are allowed.")
@@ -314,6 +333,7 @@ def _safe_eval(node: ast.AST) -> float:
 async def calculate(context: RunContext, expression: str) -> dict[str, Any]:
     """
     Safely evaluate a mathematical expression without using eval.
+    Automatically sends a calculator_card to the frontend UI after computing.
 
     Supports arithmetic operators: + - * / ** % //
     Supports functions: sqrt, sin, cos, tan, log, ln, abs, ceil, floor, round
@@ -326,7 +346,6 @@ async def calculate(context: RunContext, expression: str) -> dict[str, Any]:
     if not expression or not expression.strip():
         return {"error": "No expression provided."}
 
-    # Normalise: ^ → ** so users can write 2^8 naturally
     normalised = expression.strip().replace("^", "**")
     logger.info("tool.calculate", expression=normalised)
 
@@ -334,18 +353,23 @@ async def calculate(context: RunContext, expression: str) -> dict[str, Any]:
         tree   = ast.parse(normalised, mode="eval")
         result = _safe_eval(tree.body)
 
-        # Format cleanly: integer if possible, scientific notation otherwise
         if result == int(result) and abs(result) < 1e15:
             formatted = str(int(result))
         else:
             formatted = f"{result:.6g}"
 
         logger.info("tool.calculate.success", result=formatted)
-        return {
+
+        card_data = {
             "expression": normalised,
             "result":     result,
             "formatted":  formatted,
         }
+
+        # Auto-push the calculator card to the frontend
+        await _push_frontend_card(context, "calculator_card", card_data)
+
+        return card_data
 
     except ZeroDivisionError:
         return {"error": "Division by zero."}

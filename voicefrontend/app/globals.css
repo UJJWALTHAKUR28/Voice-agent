@@ -69,72 +69,71 @@
     --shadow-xl: 0 16px 60px rgba(0, 0, 0, 0.9);
 }
 
-/* ── Light theme — PREMIUM REDESIGN ──────────────────────────────────────── */
+/* ── Light theme — WARM AMBER/COPPER ─────────────────────────────────────── */
 /*                                                                              */
-/*   Philosophy: warm ivory paper base, deep ink text, deep indigo/violet       */
-/*   accent (replaces gold which is invisible on white).                        */
-/*   Sphere stays gold/amber — it's rendered on canvas with its own             */
-/*   contrast, but UI chrome switches to deep indigo accent.                    */
+/*   Philosophy: warm ivory paper base, deep ink text,                          */
+/*   warm amber/copper accent (matches the gold sphere — feels coherent).       */
+/*   Sphere stays gold/amber — now the UI chrome MATCHES it.                    */
+/*   Result: feels premium, editorial, warm — not cold blue-corporate.          */
 /*                                                                              */
 [data-theme="light"],
 html.light {
-    /* Surfaces — warm ivory parchment feel, NOT cold white */
-    --bg-void: #f4f1ec;
-    --bg-base: #f8f5f0;
-    --bg-surface: #fdfcf9;
+    /* Surfaces — warm ivory parchment */
+    --bg-void: #f5f2ec;
+    --bg-base: #f9f6f0;
+    --bg-surface: #fdfcf8;
     --bg-raised: #ffffff;
-    --bg-overlay: #ede9e2;
-    --bg-glass: rgba(20, 16, 10, 0.04);
-    --bg-glass-hover: rgba(20, 16, 10, 0.08);
+    --bg-overlay: #ece8e0;
+    --bg-glass: rgba(30, 20, 8, 0.04);
+    --bg-glass-hover: rgba(30, 20, 8, 0.08);
 
-    /* Borders — warm, not cool-gray */
-    --border-dim: rgba(30, 20, 10, 0.08);
-    --border-mid: rgba(30, 20, 10, 0.14);
-    --border-strong: rgba(30, 20, 10, 0.24);
+    /* Borders — warm amber-tinted */
+    --border-dim: rgba(140, 90, 20, 0.10);
+    --border-mid: rgba(140, 90, 20, 0.18);
+    --border-strong: rgba(140, 90, 20, 0.30);
 
-    /* Text — rich near-black ink, not pure #000 */
-    --text-primary: #16120c;
-    --text-secondary: #4a4436;
-    --text-muted: #8c8070;
-    --text-ghost: #c0b8a8;
+    /* Text — rich near-black ink */
+    --text-primary: #18120a;
+    --text-secondary: #5a4a30;
+    --text-muted: #9a8060;
+    --text-ghost: #c8b898;
 
-    /* LIGHT THEME ACCENT: deep indigo/violet — replaces gold for UI chrome     */
-    /* Sphere canvas still uses its own hardcoded amber — this is UI-only        */
-    --gold: #4338ca;
-    /* deep indigo — the "action" colour          */
-    --gold-bright: #5b4de8;
-    /* hover/active state                         */
-    --gold-dim: rgba(67, 56, 202, 0.10);
-    --gold-glow: rgba(67, 56, 202, 0.20);
-    --gold-halo: rgba(67, 56, 202, 0.06);
+    /* LIGHT THEME ACCENT: warm amber/copper — matches the sphere            */
+    --gold: #b07020;
+    /* deep warm amber for text/borders             */
+    --gold-bright: #d08828;
+    /* hover/active state                           */
+    --gold-dim: rgba(176, 112, 32, 0.10);
+    --gold-glow: rgba(176, 112, 32, 0.22);
+    --gold-halo: rgba(176, 112, 32, 0.06);
 
-    /* State colours — adjusted for light bg */
-    --c-idle: #a09888;
+    /* State colours — warm versions for light bg */
+    --c-idle: #b09070;
     --c-listen: #059669;
     /* rich green, visible on cream */
-    --c-think: #7c3aed;
-    /* violet */
-    --c-speak: #1d4ed8;
-    /* deep blue */
+    --c-think: #c87820;
+    /* warm amber for thinking                 */
+    --c-speak: #c87820;
+    /* same warm amber for speaking            */
 
     /* Bubbles */
-    --bubble-user: rgba(67, 56, 202, 0.08);
+    --bubble-user: rgba(176, 112, 32, 0.07);
     --bubble-agent: rgba(255, 255, 255, 0.95);
 
     /* Bottom bar */
-    --bar-bg: rgba(250, 248, 244, 0.97);
-    --bar-border: rgba(30, 20, 10, 0.10);
+    --bar-bg: rgba(249, 246, 240, 0.97);
+    --bar-border: rgba(140, 90, 20, 0.10);
 
     /* Navbar */
-    --nav-bg: rgba(248, 245, 240, 0.94);
-    --nav-border: rgba(30, 20, 10, 0.08);
+    --nav-bg: rgba(248, 245, 238, 0.94);
+    --nav-border: rgba(140, 90, 20, 0.08);
 
-    /* Shadows — warm tinted, not flat gray */
-    --shadow-xs: 0 1px 2px rgba(20, 14, 6, 0.06);
-    --shadow-sm: 0 2px 8px rgba(20, 14, 6, 0.08);
-    --shadow-md: 0 4px 20px rgba(20, 14, 6, 0.10);
-    --shadow-lg: 0 8px 40px rgba(20, 14, 6, 0.12);
-    --shadow-xl: 0 16px 60px rgba(20, 14, 6, 0.14);
+    /* Shadows — warm amber-tinted */
+    --shadow-xs: 0 1px 2px rgba(60, 40, 10, 0.06);
+    --shadow-sm: 0 2px 8px rgba(60, 40, 10, 0.09);
+    --shadow-md: 0 4px 20px rgba(60, 40, 10, 0.11);
+    --shadow-lg: 0 8px 40px rgba(60, 40, 10, 0.13);
+    --shadow-xl: 0 16px 60px rgba(60, 40, 10, 0.15);
 }
 
 /* ── Reset ────────────────────────────────────────────────────────────────── */
@@ -465,19 +464,20 @@ body {
     color: #fca5a5 !important;
 }
 
-/* Light mode LiveKit overrides */
+/* ── Light mode LiveKit overrides — warm amber style ─────────────────────── */
 [data-theme="light"] .lk-button,
 html.light .lk-button {
     background: var(--bg-raised) !important;
     border-color: var(--border-mid) !important;
     color: var(--text-primary) !important;
-    box-shadow: 0 1px 4px rgba(20, 14, 6, 0.06) !important;
+    box-shadow: 0 1px 4px rgba(60, 40, 10, 0.07) !important;
 }
 
 [data-theme="light"] .lk-button:hover,
 html.light .lk-button:hover {
     background: var(--bg-overlay) !important;
     border-color: var(--border-strong) !important;
+    color: var(--text-primary) !important;
 }
 
 [data-theme="light"] .lk-button[data-lk-active="true"],
@@ -489,9 +489,16 @@ html.light .lk-button[data-lk-active="true"] {
 
 [data-theme="light"] .lk-disconnect-button,
 html.light .lk-disconnect-button {
-    background: rgba(220, 38, 38, 0.08) !important;
-    border-color: rgba(220, 38, 38, 0.3) !important;
-    color: #dc2626 !important;
+    background: rgba(180, 40, 40, 0.07) !important;
+    border-color: rgba(180, 40, 40, 0.25) !important;
+    color: #c03030 !important;
+}
+
+[data-theme="light"] .lk-disconnect-button:hover,
+html.light .lk-disconnect-button:hover {
+    background: rgba(180, 40, 40, 0.13) !important;
+    border-color: rgba(180, 40, 40, 0.40) !important;
+    color: #a02020 !important;
 }
 
 /* Mic muted */
@@ -499,6 +506,13 @@ html.light .lk-disconnect-button {
     background: rgba(239, 68, 68, 0.1) !important;
     border-color: rgba(239, 68, 68, 0.3) !important;
     color: #f87171 !important;
+}
+
+[data-theme="light"] .lk-button[data-lk-source="microphone"][data-lk-enabled="false"],
+html.light .lk-button[data-lk-source="microphone"][data-lk-enabled="false"] {
+    background: rgba(180, 40, 40, 0.07) !important;
+    border-color: rgba(180, 40, 40, 0.25) !important;
+    color: #c03030 !important;
 }
 
 .lk-control-bar *,
@@ -519,13 +533,7 @@ html.light .lk-disconnect-button {
 
 [data-theme="light"] .noise-overlay,
 html.light .noise-overlay {
-    opacity: 0.01;
-}
-
-/* ── Light mode: atmospheric grid adjustments ─────────────────────────────── */
-[data-theme="light"] .noise-overlay,
-html.light .noise-overlay {
-    opacity: 0.009;
+    opacity: 0.012;
 }
 
 /* ── Smooth theme transitions ─────────────────────────────────────────────── */
@@ -542,25 +550,24 @@ input {
         box-shadow 0.35s ease !important;
 }
 
-/* ── Light theme: sphere canvas extra contrast booster ───────────────────── */
-/* The canvas uses its own rendering so it already has amber on void-dark bg.  */
-/* In light mode we boost the drop-shadow so the sphere reads against cream.   */
+/* ── Light theme: sphere canvas — warm amber glow ────────────────────────── */
+/* Sphere is always gold/amber — in light mode boost the warm drop-shadow.     */
 [data-theme="light"] canvas,
 html.light canvas {
-    filter: drop-shadow(0 0 40px rgba(67, 56, 202, 0.25)) drop-shadow(0 0 80px rgba(67, 56, 202, 0.10)) !important;
+    filter: drop-shadow(0 0 32px rgba(176, 112, 32, 0.28)) drop-shadow(0 0 80px rgba(176, 112, 32, 0.10)) !important;
 }
 
 /* ── Landing page: hero text gradient in light mode ──────────────────────── */
+/* Warm dark brown-to-amber gradient for large hero text on parchment          */
 [data-theme="light"] h1,
 html.light h1 {
-    /* subtle warm-to-neutral gradient for large hero text */
-    background: linear-gradient(160deg, #16120c 0%, #3a3028 100%);
+    background: linear-gradient(160deg, #18120a 0%, #4a3010 60%, #8a5820 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
-/* Dark mode: same treatment but lighter */
+/* Dark mode: silver-to-ghost gradient */
 :root h1 {
     background: linear-gradient(160deg, #f2f2f6 0%, #c8c8dc 50%, #8e8ea8 100%);
     -webkit-background-clip: text;
@@ -571,4 +578,43 @@ html.light h1 {
 /* ── Sphere containers: ensure no glow clipping ──────────────────────────── */
 canvas {
     overflow: visible;
+}
+
+/* ── Light mode: global button improvements ──────────────────────────────── */
+/* Give all plain buttons in light mode better contrast and warmth            */
+[data-theme="light"] button:not(.lk-button),
+html.light button:not(.lk-button) {
+    border-color: var(--border-mid);
+    color: var(--text-secondary);
+}
+
+[data-theme="light"] button:not(.lk-button):hover,
+html.light button:not(.lk-button):hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: var(--gold-dim);
+}
+
+/* ── Light mode: form inputs better contrast ─────────────────────────────── */
+[data-theme="light"] textarea,
+html.light textarea,
+[data-theme="light"] input,
+html.light input {
+    background: var(--bg-raised) !important;
+    border-color: var(--border-mid) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="light"] textarea:focus,
+html.light textarea:focus,
+[data-theme="light"] input:focus,
+html.light input:focus {
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 0 3px var(--gold-dim) !important;
+}
+
+/* ── Light mode: atmospheric grid warm tint ──────────────────────────────── */
+[data-theme="light"] .noise-overlay,
+html.light .noise-overlay {
+    opacity: 0.01;
 }

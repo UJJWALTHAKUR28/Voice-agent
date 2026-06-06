@@ -26,7 +26,7 @@ export interface TranscriptEvent {
 }
 
 export interface ConversationItem {
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'system';
     content: string;
     timestamp: number;
     id: string;

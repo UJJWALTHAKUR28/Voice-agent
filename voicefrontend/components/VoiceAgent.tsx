@@ -14,7 +14,7 @@ import {
 import '@livekit/components-styles';
 import { motion, AnimatePresence } from 'motion/react';
 
-import { ClientToolHandler, playSound } from './ClientToolHandler';
+import { ClientToolHandler, CardOverlay, playSound } from './ClientToolHandler';
 import { useAgentEvents } from '@/hooks/useAgentEvents';
 import { useTranscript } from '../hooks/useTranscript';
 import { useTextInput } from '../hooks/useTextInput';
@@ -29,7 +29,7 @@ async function fetchToken(): Promise<TokenResponse> {
     return res.json();
 }
 
-/* ── JARVIS Orb — adapts to CSS theme vars ────────────────────────────────── */
+/* ── JARVIS Orb — always warm gold/amber in both themes ──────────────────── */
 function AgentOrb({ state }: { state: AgentState }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animRef = useRef<number>(0);
@@ -88,36 +88,21 @@ function AgentOrb({ state }: { state: AgentState }) {
         let breatheT = 0;
 
         function getColors() {
-            const isLight = document.documentElement.hasAttribute('data-theme') ||
-                document.documentElement.classList.contains('light');
+            // NOTE: Sphere is always warm gold/amber regardless of theme.
+            // State-based colours shift within the warm palette.
             const s = stateRef.current;
-            if (isLight) {
-                const nodeC = s === 'listening' ? 'rgba(14,165,119,' :
-                    s === 'thinking' ? 'rgba(124,94,200,' :
-                        s === 'speaking' ? 'rgba(52,104,204,' :
-                            'rgba(65,78,178,';
-                return {
-                    node: nodeC,
-                    edge: 'rgba(98,113,196,',
-                    ring: 'rgba(65,78,178,',
-                    halo: 'rgba(79,91,149,',
-                    blip: s === 'thinking' ? 'rgba(124,94,200,' : 'rgba(14,165,119,',
-                    listenRing: 'rgba(14,165,119,',
-                    thinkArc: 'rgba(124,94,200,',
-                };
-            }
-            const nodeC = s === 'listening' ? 'rgba(45,212,160,' :
-                s === 'thinking' ? 'rgba(157,123,234,' :
-                    s === 'speaking' ? 'rgba(91,164,245,' :
-                        'rgba(232,172,68,';
+            const nodeC = s === 'listening' ? 'rgba(45,212,160,' :   // teal for listening
+                s === 'thinking' ? 'rgba(200,160,80,' :              // warm yellow-gold for thinking
+                    s === 'speaking' ? 'rgba(232,172,68,' :          // bright gold for speaking
+                        'rgba(200,146,42,';                          // base gold for idle/init
             return {
                 node: nodeC,
-                edge: 'rgba(232,172,68,',
+                edge: 'rgba(200,146,42,',
                 ring: 'rgba(200,146,42,',
                 halo: 'rgba(200,146,42,',
-                blip: s === 'thinking' ? 'rgba(157,123,234,' : 'rgba(45,212,160,',
+                blip: s === 'thinking' ? 'rgba(200,160,80,' : s === 'listening' ? 'rgba(45,212,160,' : 'rgba(232,172,68,',
                 listenRing: 'rgba(45,212,160,',
-                thinkArc: 'rgba(157,123,234,',
+                thinkArc: 'rgba(220,170,60,',
             };
         }
 
@@ -325,16 +310,13 @@ function AgentOrb({ state }: { state: AgentState }) {
         return () => cancelAnimationFrame(animRef.current);
     }, []);
 
-    const isLight = typeof window !== 'undefined' &&
-        (document.documentElement.hasAttribute('data-theme') ||
-            document.documentElement.classList.contains('light'));
-
+    // State label colours — warm gold palette for ALL themes
     const stateColors: Record<AgentState, string> = {
-        initializing: isLight ? '#4f5b95' : '#c8922a',
-        idle: isLight ? '#7880a8' : '#4a4a5c',
-        listening: isLight ? '#0ea573' : '#2dd4a0',
-        thinking: isLight ? '#7c5ec8' : '#9d7bea',
-        speaking: isLight ? '#3468cc' : '#5ba4f5',
+        initializing: '#c8922a',
+        idle: '#8a7040',
+        listening: '#2dd4a0',
+        thinking: '#e8c060',
+        speaking: '#e8ac44',
     };
     const stateLabels: Record<AgentState, string> = {
         initializing: 'INIT',
@@ -353,16 +335,10 @@ function AgentOrb({ state }: { state: AgentState }) {
                 style={{
                     display: 'block',
                     filter: state === 'speaking'
-                        ? isLight
-                            ? 'drop-shadow(0 0 24px rgba(52,104,204,0.5))'
-                            : 'drop-shadow(0 0 28px rgba(200,146,42,0.45))'
+                        ? 'drop-shadow(0 0 28px rgba(200,146,42,0.50))'
                         : state === 'listening'
-                            ? isLight
-                                ? 'drop-shadow(0 0 16px rgba(14,165,119,0.4))'
-                                : 'drop-shadow(0 0 16px rgba(45,212,160,0.3))'
-                            : isLight
-                                ? 'drop-shadow(0 0 12px rgba(65,78,178,0.25))'
-                                : 'drop-shadow(0 0 12px rgba(200,146,42,0.18))',
+                            ? 'drop-shadow(0 0 16px rgba(45,212,160,0.35))'
+                            : 'drop-shadow(0 0 12px rgba(200,146,42,0.22))',
                     transition: 'filter 0.6s ease',
                 }}
             />
@@ -393,14 +369,15 @@ function AgentOrb({ state }: { state: AgentState }) {
 /* ── Message Bubble ──────────────────────────────────────────────────────── */
 function MessageBubble({ item }: { item: ConversationItem }) {
     const isUser = item.role === 'user';
+    const isSystem = item.role === 'system';
     return (
         <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: '2px' }}
+            style={{ display: 'flex', justifyContent: isSystem ? 'center' : isUser ? 'flex-end' : 'flex-start', marginBottom: '2px' }}
         >
-            {!isUser && (
+            {(!isUser && !isSystem) && (
                 <div style={{
                     width: '22px', height: '22px', borderRadius: '50%',
                     background: 'radial-gradient(circle at 35% 35%, var(--gold-bright), var(--gold))',
@@ -410,15 +387,16 @@ function MessageBubble({ item }: { item: ConversationItem }) {
                 }}>J</div>
             )}
             <div style={{
-                maxWidth: '72%', padding: '10px 14px',
-                borderRadius: isUser ? 'var(--r-lg) var(--r-lg) 4px var(--r-lg)' : 'var(--r-lg) var(--r-lg) var(--r-lg) 4px',
-                background: isUser ? 'var(--bubble-user)' : 'var(--bubble-agent)',
-                border: '1px solid var(--border-dim)',
+                maxWidth: isSystem ? '90%' : '72%', padding: isSystem ? '8px 16px' : '10px 14px',
+                borderRadius: isUser ? 'var(--r-lg) var(--r-lg) 4px var(--r-lg)' : isSystem ? '100px' : 'var(--r-lg) var(--r-lg) var(--r-lg) 4px',
+                background: isUser ? 'var(--bubble-user)' : isSystem ? 'var(--bg-glass)' : 'var(--bubble-agent)',
+                border: isSystem ? '1px solid var(--border-mid)' : '1px solid var(--border-dim)',
                 backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-                fontSize: '14px', lineHeight: 1.65,
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-ui)', fontWeight: 300,
+                fontSize: isSystem ? '13px' : '14px', lineHeight: 1.65,
+                color: isSystem ? 'var(--text-secondary)' : 'var(--text-primary)',
+                fontFamily: 'var(--font-ui)', fontWeight: isSystem ? 400 : 300,
                 wordBreak: 'break-word', boxShadow: 'var(--shadow-xs)',
+                textAlign: isSystem ? 'center' : 'left',
             }}>
                 {item.content}
             </div>
@@ -726,8 +704,8 @@ function JocastaSession() {
                             transition: 'border-color 0.2s, background 0.3s, color 0.3s',
                         }}
                         onFocus={e => {
-                            e.target.style.borderColor = 'var(--accent)';
-                            e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)';
+                            e.target.style.borderColor = 'var(--gold)';
+                            e.target.style.boxShadow = '0 0 0 3px var(--gold-dim)';
                         }}
                         onBlur={e => {
                             e.target.style.borderColor = 'var(--border-mid)';
@@ -747,14 +725,16 @@ function JocastaSession() {
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             flexShrink: 0, fontSize: '18px',
                             transition: 'all 0.2s',
-                            boxShadow: textValue.trim() && isConnected ? '0 4px 16px var(--accent-glow)' : 'none',
+                            boxShadow: textValue.trim() && isConnected ? '0 4px 16px var(--gold-glow)' : 'none',
                         }}
                     >↑</button>
                 </div>
             </div>
 
             <RoomAudioRenderer />
-            <ClientToolHandler />
+            <ClientToolHandler onSystemMessage={(msg) => addItem({ role: 'system', content: msg, timestamp: Date.now(), id: `sys-${Date.now()}` })} />
+            {/* Card overlay — weather/calculator cards float here */}
+            <CardOverlay />
         </div>
     );
 }
@@ -803,7 +783,7 @@ export function VoiceAgent() {
                         background: 'radial-gradient(circle at 35% 35%, var(--gold-bright), var(--gold))',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '28px', color: '#0c0a06',
-                        boxShadow: '0 0 0 1px var(--gold-glow), 0 0 40px var(--accent-glow)',
+                        boxShadow: '0 0 0 1px var(--gold-glow), 0 0 40px var(--gold-glow)',
                         animation: 'orb-breathe 3s ease infinite',
                     }}>J</div>
 
@@ -835,7 +815,7 @@ export function VoiceAgent() {
                             border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
                             fontFamily: 'var(--font-display)', fontWeight: 700,
                             fontSize: '15px', letterSpacing: '-0.01em',
-                            boxShadow: loading ? 'none' : '0 8px 32px var(--accent-glow)',
+                            boxShadow: loading ? 'none' : '0 8px 32px var(--gold-glow)',
                             transition: 'all 0.2s',
                             display: 'flex', alignItems: 'center', gap: '10px',
                         }}
