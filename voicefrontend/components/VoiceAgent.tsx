@@ -1,7 +1,7 @@
 'use client';
 
 // components/VoiceAgent.tsx
-// Jocasta — Full-screen voice interface
+// Jocasta — Full-screen voice interface with JARVIS orbital sphere
 // Full light/dark theme support — all panels use CSS vars
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -29,7 +29,7 @@ async function fetchToken(): Promise<TokenResponse> {
     return res.json();
 }
 
-/* ── Agent Sphere ─────────────────────────────────────────────────────────── */
+/* ── JARVIS Orb — adapts to CSS theme vars ────────────────────────────────── */
 function AgentOrb({ state }: { state: AgentState }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animRef = useRef<number>(0);
@@ -40,17 +40,19 @@ function AgentOrb({ state }: { state: AgentState }) {
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d')!;
         const DPR = window.devicePixelRatio || 1;
         const SIZE = 240;
         canvas.width = SIZE * DPR;
         canvas.height = SIZE * DPR;
         canvas.style.width = SIZE + 'px';
         canvas.style.height = SIZE + 'px';
+        const ctx = canvas.getContext('2d')!;
         ctx.scale(DPR, DPR);
         const W = SIZE, H = SIZE;
-        const cx = W / 2, cy = H / 2, R = 88;
+        const cx = W / 2, cy = H / 2;
+        const R = 82;
 
+        /* Fibonacci nodes */
         const N = 130;
         const golden = Math.PI * (3 - Math.sqrt(5));
         const nodes: { x: number; y: number; z: number }[] = [];
@@ -66,12 +68,58 @@ function AgentOrb({ state }: { state: AgentState }) {
                 const dx = nodes[i].x - nodes[j].x;
                 const dy = nodes[i].y - nodes[j].y;
                 const dz = nodes[i].z - nodes[j].z;
-                if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 0.42) edges.push([i, j]);
+                if (dx * dx + dy * dy + dz * dz < 0.17) edges.push([i, j]);
             }
         }
 
+        /* Orbital rings */
+        const rings = [
+            { rx: 1.2, ry: 0.0, rm: 1.22, speed: 0.55, phase: 0.0 },
+            { rx: 0.5, ry: 0.9, rm: 1.40, speed: -0.38, phase: 1.1 },
+            { rx: 0.2, ry: 0.4, rm: 1.58, speed: 0.22, phase: 2.2 },
+        ];
+
+        const blips = rings.map((_, ri) => ({
+            t: ri * 0.33,
+            speed: 0.9 + ri * 0.35,
+        }));
+
         let pulseT = 0;
         let breatheT = 0;
+
+        function getColors() {
+            const isLight = document.documentElement.hasAttribute('data-theme') ||
+                document.documentElement.classList.contains('light');
+            const s = stateRef.current;
+            if (isLight) {
+                const nodeC = s === 'listening' ? 'rgba(14,165,119,' :
+                    s === 'thinking' ? 'rgba(124,94,200,' :
+                        s === 'speaking' ? 'rgba(52,104,204,' :
+                            'rgba(65,78,178,';
+                return {
+                    node: nodeC,
+                    edge: 'rgba(98,113,196,',
+                    ring: 'rgba(65,78,178,',
+                    halo: 'rgba(79,91,149,',
+                    blip: s === 'thinking' ? 'rgba(124,94,200,' : 'rgba(14,165,119,',
+                    listenRing: 'rgba(14,165,119,',
+                    thinkArc: 'rgba(124,94,200,',
+                };
+            }
+            const nodeC = s === 'listening' ? 'rgba(45,212,160,' :
+                s === 'thinking' ? 'rgba(157,123,234,' :
+                    s === 'speaking' ? 'rgba(91,164,245,' :
+                        'rgba(232,172,68,';
+            return {
+                node: nodeC,
+                edge: 'rgba(232,172,68,',
+                ring: 'rgba(200,146,42,',
+                halo: 'rgba(200,146,42,',
+                blip: s === 'thinking' ? 'rgba(157,123,234,' : 'rgba(45,212,160,',
+                listenRing: 'rgba(45,212,160,',
+                thinkArc: 'rgba(157,123,234,',
+            };
+        }
 
         function draw() {
             const s = stateRef.current;
@@ -79,11 +127,13 @@ function AgentOrb({ state }: { state: AgentState }) {
             const isListening = s === 'listening';
             const isThinking = s === 'thinking';
 
-            timeRef.current += isSpeaking ? 0.007 : isListening ? 0.005 : isThinking ? 0.003 : 0.0018;
-            pulseT += isSpeaking ? 0.08 : 0.025;
-            breatheT += 0.02;
+            const colors = getColors();
 
-            const breatheScale = 1 + Math.sin(breatheT) * (isSpeaking ? 0.06 : 0.018);
+            timeRef.current += isSpeaking ? 0.0075 : isListening ? 0.0055 : isThinking ? 0.003 : 0.002;
+            pulseT += isSpeaking ? 0.09 : 0.028;
+            breatheT += 0.018;
+
+            const breatheScale = 1 + Math.sin(breatheT) * (isSpeaking ? 0.065 : 0.02);
             const angle = timeRef.current;
             const tiltX = 0.3;
             const cosA = Math.cos(angle), sinA = Math.sin(angle);
@@ -103,80 +153,168 @@ function AgentOrb({ state }: { state: AgentState }) {
                 return { px: cx + rx * Rb * sc, py: cy + fy * Rb * sc, z: fz };
             }
 
-            const haloA = isSpeaking ? 0.18 : isListening ? 0.08 : 0.03;
-            const halo = ctx.createRadialGradient(cx, cy, Rb * 0.3, cx, cy, Rb * 1.6);
-            halo.addColorStop(0, `rgba(200,146,42,${haloA})`);
-            halo.addColorStop(1, 'rgba(200,146,42,0)');
+            /* Halo */
+            const haloA = isSpeaking ? 0.22 : isListening ? 0.10 : 0.04;
+            const halo = ctx.createRadialGradient(cx, cy, Rb * 0.2, cx, cy, Rb * 1.8);
+            halo.addColorStop(0, `${colors.halo}${haloA})`);
+            halo.addColorStop(0.5, `${colors.halo}${haloA * 0.4})`);
+            halo.addColorStop(1, `${colors.halo}0)`);
             ctx.fillStyle = halo;
             ctx.fillRect(0, 0, W, H);
 
+            /* Inner core glow */
+            const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, Rb * 0.55);
+            core.addColorStop(0, `${colors.halo}${isSpeaking ? 0.14 : 0.05})`);
+            core.addColorStop(1, `${colors.halo}0)`);
+            ctx.beginPath();
+            ctx.arc(cx, cy, Rb * 0.55, 0, Math.PI * 2);
+            ctx.fillStyle = core;
+            ctx.fill();
+
+            /* Edges */
             for (const [a, b] of edges) {
                 const pA = project(nodes[a].x, nodes[a].y, nodes[a].z);
                 const pB = project(nodes[b].x, nodes[b].y, nodes[b].z);
                 const vis = ((pA.z + pB.z) / 2 + 1) / 2;
-                const baseA = isSpeaking ? 0.6 : isListening ? 0.45 : 0.22;
+                const baseA = isSpeaking ? 0.65 : isListening ? 0.50 : 0.25;
                 const alpha = vis * baseA;
                 const grd = ctx.createLinearGradient(pA.px, pA.py, pB.px, pB.py);
-                grd.addColorStop(0, `rgba(200,146,42,${alpha * 0.6})`);
-                grd.addColorStop(0.5, `rgba(232,172,68,${alpha})`);
-                grd.addColorStop(1, `rgba(200,146,42,${alpha * 0.6})`);
+                grd.addColorStop(0, `${colors.edge}${alpha * 0.6})`);
+                grd.addColorStop(0.5, `${colors.edge}${alpha})`);
+                grd.addColorStop(1, `${colors.edge}${alpha * 0.6})`);
                 ctx.beginPath();
                 ctx.moveTo(pA.px, pA.py);
                 ctx.lineTo(pB.px, pB.py);
                 ctx.strokeStyle = grd;
-                ctx.lineWidth = vis * (isSpeaking ? 0.85 : 0.5);
+                ctx.lineWidth = vis * (isSpeaking ? 0.9 : 0.55);
                 ctx.stroke();
             }
 
+            /* Nodes */
             for (let i = 0; i < N; i++) {
                 const p = project(nodes[i].x, nodes[i].y, nodes[i].z);
                 const vis = (p.z + 1) / 2;
-                const r = vis * (isSpeaking ? 2.2 : 1.7);
-                const alpha = vis * (isSpeaking ? 0.95 : isListening ? 0.75 : 0.45);
+                const r = vis * (isSpeaking ? 2.4 : 1.8);
+                const alpha = vis * (isSpeaking ? 0.95 : isListening ? 0.80 : 0.50);
                 ctx.beginPath();
                 ctx.arc(p.px, p.py, r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(232,172,68,${alpha})`;
+                ctx.fillStyle = `${colors.node}${alpha})`;
                 ctx.fill();
-                if ((isSpeaking || isListening) && vis > 0.8) {
+                if ((isSpeaking || isListening) && vis > 0.78) {
                     ctx.beginPath();
-                    ctx.arc(p.px, p.py, r * 3, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(200,146,42,${alpha * 0.09})`;
+                    ctx.arc(p.px, p.py, r * 3.2, 0, Math.PI * 2);
+                    ctx.fillStyle = `${colors.node}${alpha * 0.09})`;
                     ctx.fill();
                 }
             }
 
+            /* Orbital rings */
+            rings.forEach((ring, ri) => {
+                const ringR = Rb * ring.rm;
+                const ringAlpha = isSpeaking ? 0.8 : isListening ? 0.65 : isThinking ? 0.55 : 0.40;
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.beginPath();
+                let first = true;
+                const steps = 100;
+                for (let step = 0; step <= steps; step++) {
+                    const t = (step / steps) * Math.PI * 2;
+                    const modT = ((t / (Math.PI * 2)) + 1) % 1;
+                    if (modT < 0.07 || (modT > 0.45 && modT < 0.47)) continue;
+
+                    const rx3 = Math.cos(t) * ringR;
+                    const ry3 = Math.sin(t) * ringR * Math.cos(ring.rx);
+                    const rz3 = Math.sin(t) * ringR * Math.sin(ring.rx);
+                    const rxx = rx3 * Math.cos(ring.ry + angle * ring.speed * 0.5) +
+                        rz3 * Math.sin(ring.ry + angle * ring.speed * 0.5);
+                    const ryy = ry3;
+                    const fov = 360;
+                    const sc = fov / (fov + rz3 * 0.35);
+                    const px = rxx * sc;
+                    const py = ryy * sc;
+
+                    if (first) { ctx.moveTo(px, py); first = false; }
+                    else ctx.lineTo(px, py);
+                }
+                ctx.strokeStyle = `${colors.ring}${ringAlpha})`;
+                ctx.lineWidth = isSpeaking ? 1.3 : 0.8;
+                ctx.stroke();
+                ctx.restore();
+
+                /* Blip */
+                blips[ri].t = (blips[ri].t + blips[ri].speed * 0.005) % 1;
+                const bt = blips[ri].t * Math.PI * 2;
+                const bx3 = Math.cos(bt) * ringR;
+                const by3 = Math.sin(bt) * ringR * Math.cos(ring.rx);
+                const bz3 = Math.sin(bt) * ringR * Math.sin(ring.rx);
+                const bxx = bx3 * Math.cos(ring.ry + angle * ring.speed * 0.5) +
+                    bz3 * Math.sin(ring.ry + angle * ring.speed * 0.5);
+                const byy = by3;
+                const bfov = 360;
+                const bsc = bfov / (bfov + bz3 * 0.35);
+                const bpx = cx + bxx * bsc;
+                const bpy = cy + byy * bsc;
+
+                ctx.beginPath();
+                ctx.arc(bpx, bpy, isSpeaking ? 3.2 : 2, 0, Math.PI * 2);
+                ctx.fillStyle = `${colors.blip}${isSpeaking ? 1 : 0.7})`;
+                ctx.fill();
+                if (isSpeaking || isListening) {
+                    ctx.beginPath();
+                    ctx.arc(bpx, bpy, 7, 0, Math.PI * 2);
+                    ctx.fillStyle = `${colors.blip}0.15)`;
+                    ctx.fill();
+                }
+            });
+
+            /* Speaking pulse rings */
             if (isSpeaking) {
                 for (let ring = 0; ring < 4; ring++) {
-                    const phase = (pulseT * 0.35 + ring * 0.65) % 1;
-                    const rr = Rb * (0.85 + phase * 0.8);
-                    const al = (1 - phase) * 0.2;
+                    const phase = (pulseT * 0.33 + ring * 0.65) % 1;
+                    const rr = Rb * (0.88 + phase * 0.85);
+                    const al = (1 - phase) * 0.24;
                     ctx.beginPath();
                     ctx.arc(cx, cy, rr, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(200,146,42,${al})`;
+                    ctx.strokeStyle = `${colors.halo}${al})`;
                     ctx.lineWidth = 1.5;
                     ctx.stroke();
                 }
             }
 
+            /* Thinking arc */
             if (isThinking) {
                 ctx.save();
                 ctx.translate(cx, cy);
-                ctx.rotate(timeRef.current * 6);
+                ctx.rotate(timeRef.current * 5);
                 ctx.beginPath();
-                ctx.arc(0, 0, Rb * 1.14, 0, Math.PI * 1.4);
-                ctx.strokeStyle = 'rgba(157,123,234,0.5)';
+                ctx.arc(0, 0, Rb * 1.16, 0, Math.PI * 1.5);
+                ctx.strokeStyle = `${colors.thinkArc}0.55)`;
                 ctx.lineWidth = 1.5;
-                ctx.setLineDash([4, 7]);
+                ctx.setLineDash([5, 8]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(-timeRef.current * 3);
+                ctx.beginPath();
+                ctx.arc(0, 0, Rb * 1.28, 0, Math.PI * 0.8);
+                ctx.strokeStyle = `${colors.thinkArc}0.3)`;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 10]);
                 ctx.stroke();
                 ctx.setLineDash([]);
                 ctx.restore();
             }
 
+            /* Listening pulse ring */
             if (isListening) {
                 ctx.beginPath();
-                ctx.arc(cx, cy, Rb * 1.1, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(45,212,160,${0.2 + Math.sin(pulseT * 3) * 0.08})`;
-                ctx.lineWidth = 1;
+                ctx.arc(cx, cy, Rb * 1.12, 0, Math.PI * 2);
+                ctx.strokeStyle = `${colors.listenRing}${0.22 + Math.sin(pulseT * 3) * 0.1})`;
+                ctx.lineWidth = 1.2;
                 ctx.stroke();
             }
 
@@ -187,12 +325,16 @@ function AgentOrb({ state }: { state: AgentState }) {
         return () => cancelAnimationFrame(animRef.current);
     }, []);
 
+    const isLight = typeof window !== 'undefined' &&
+        (document.documentElement.hasAttribute('data-theme') ||
+            document.documentElement.classList.contains('light'));
+
     const stateColors: Record<AgentState, string> = {
-        initializing: '#c8922a',
-        idle: '#4a4a5c',
-        listening: '#2dd4a0',
-        thinking: '#9d7bea',
-        speaking: '#5ba4f5',
+        initializing: isLight ? '#4f5b95' : '#c8922a',
+        idle: isLight ? '#7880a8' : '#4a4a5c',
+        listening: isLight ? '#0ea573' : '#2dd4a0',
+        thinking: isLight ? '#7c5ec8' : '#9d7bea',
+        speaking: isLight ? '#3468cc' : '#5ba4f5',
     };
     const stateLabels: Record<AgentState, string> = {
         initializing: 'INIT',
@@ -202,6 +344,8 @@ function AgentOrb({ state }: { state: AgentState }) {
         speaking: 'SPEAKING',
     };
 
+    const stateColor = stateColors[state];
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
             <canvas
@@ -209,39 +353,38 @@ function AgentOrb({ state }: { state: AgentState }) {
                 style={{
                     display: 'block',
                     filter: state === 'speaking'
-                        ? 'drop-shadow(0 0 28px rgba(200,146,42,0.45))'
+                        ? isLight
+                            ? 'drop-shadow(0 0 24px rgba(52,104,204,0.5))'
+                            : 'drop-shadow(0 0 28px rgba(200,146,42,0.45))'
                         : state === 'listening'
-                            ? 'drop-shadow(0 0 16px rgba(45,212,160,0.3))'
-                            : 'drop-shadow(0 0 12px rgba(200,146,42,0.15))',
+                            ? isLight
+                                ? 'drop-shadow(0 0 16px rgba(14,165,119,0.4))'
+                                : 'drop-shadow(0 0 16px rgba(45,212,160,0.3))'
+                            : isLight
+                                ? 'drop-shadow(0 0 12px rgba(65,78,178,0.25))'
+                                : 'drop-shadow(0 0 12px rgba(200,146,42,0.18))',
                     transition: 'filter 0.6s ease',
                 }}
             />
             <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '7px',
-                padding: '5px 14px',
-                borderRadius: '100px',
-                border: `1px solid ${stateColors[state]}30`,
-                background: `${stateColors[state]}12`,
+                display: 'flex', alignItems: 'center', gap: '7px',
+                padding: '5px 14px', borderRadius: '100px',
+                border: `1px solid ${stateColor}30`,
+                background: `${stateColor}14`,
                 backdropFilter: 'blur(12px)',
                 transition: 'all 0.4s ease',
             }}>
                 <span style={{
                     width: '6px', height: '6px', borderRadius: '50%',
-                    background: stateColors[state],
-                    boxShadow: `0 0 8px ${stateColors[state]}aa`,
+                    background: stateColor,
+                    boxShadow: `0 0 8px ${stateColor}aa`,
                     animation: (state === 'speaking' || state === 'listening') ? 'pulse-soft 1.8s ease infinite' : 'none',
                     flexShrink: 0,
                 }} />
                 <span style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '10px',
-                    color: stateColors[state],
-                    letterSpacing: '0.1em',
-                }}>
-                    {stateLabels[state]}
-                </span>
+                    fontFamily: 'var(--font-mono)', fontSize: '10px',
+                    color: stateColor, letterSpacing: '0.1em',
+                }}>{stateLabels[state]}</span>
             </div>
         </div>
     );
@@ -267,20 +410,15 @@ function MessageBubble({ item }: { item: ConversationItem }) {
                 }}>J</div>
             )}
             <div style={{
-                maxWidth: '72%',
-                padding: '10px 14px',
+                maxWidth: '72%', padding: '10px 14px',
                 borderRadius: isUser ? 'var(--r-lg) var(--r-lg) 4px var(--r-lg)' : 'var(--r-lg) var(--r-lg) var(--r-lg) 4px',
                 background: isUser ? 'var(--bubble-user)' : 'var(--bubble-agent)',
                 border: '1px solid var(--border-dim)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                fontSize: '14px',
-                lineHeight: 1.65,
+                backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                fontSize: '14px', lineHeight: 1.65,
                 color: 'var(--text-primary)',
-                fontFamily: 'var(--font-ui)',
-                fontWeight: 300,
-                wordBreak: 'break-word',
-                boxShadow: 'var(--shadow-xs)',
+                fontFamily: 'var(--font-ui)', fontWeight: 300,
+                wordBreak: 'break-word', boxShadow: 'var(--shadow-xs)',
             }}>
                 {item.content}
             </div>
@@ -301,8 +439,7 @@ function ThinkingBubble() {
             <div style={{
                 padding: '12px 16px',
                 borderRadius: 'var(--r-lg) var(--r-lg) var(--r-lg) 4px',
-                background: 'var(--bubble-agent)',
-                border: '1px solid var(--border-dim)',
+                background: 'var(--bubble-agent)', border: '1px solid var(--border-dim)',
                 display: 'flex', gap: '5px', alignItems: 'center',
             }}>
                 {[0, 0.18, 0.36].map((delay, i) => (
@@ -418,13 +555,9 @@ function JocastaSession() {
 
     return (
         <div style={{
-            position: 'fixed',
-            inset: 0,
-            top: '56px',
-            display: 'flex',
-            flexDirection: 'column',
-            background: 'var(--bg-void)',
-            overflow: 'hidden',
+            position: 'fixed', inset: 0, top: '56px',
+            display: 'flex', flexDirection: 'column',
+            background: 'var(--bg-void)', overflow: 'hidden',
             transition: 'background 0.35s ease',
         }}>
             {/* Atmospheric backgrounds */}
@@ -448,21 +581,19 @@ function JocastaSession() {
             {/* ── Body ─────────────────────────────────────────────────────── */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
 
-                {/* Left panel: sphere */}
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    width: hasMessages ? '280px' : '100%',
-                    transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)',
-                    padding: '24px 20px',
-                    borderRight: hasMessages ? '1px solid var(--border-dim)' : 'none',
-                    background: 'transparent',
-                    position: 'relative',
-                    zIndex: 2,
-                }}>
+                {/* Left: sphere */}
+                <motion.div
+                    animate={{ width: hasMessages ? '280px' : '100%' }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    style={{
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                        padding: '24px 20px',
+                        borderRight: hasMessages ? '1px solid var(--border-dim)' : 'none',
+                        position: 'relative', zIndex: 2,
+                    }}
+                >
                     <AgentOrb state={agentState} />
 
                     {!hasMessages && (
@@ -493,9 +624,9 @@ function JocastaSession() {
                             </div>
                         </motion.div>
                     )}
-                </div>
+                </motion.div>
 
-                {/* Right panel: transcript */}
+                {/* Right: transcript */}
                 <AnimatePresence>
                     {hasMessages && (
                         <motion.div
@@ -505,16 +636,12 @@ function JocastaSession() {
                             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                             style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, position: 'relative' }}
                         >
-                            {/* Transcript header */}
+                            {/* Header */}
                             <div style={{
-                                flexShrink: 0,
-                                padding: '12px 20px',
+                                flexShrink: 0, padding: '12px 20px',
                                 borderBottom: '1px solid var(--border-dim)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                background: 'var(--bg-glass)',
-                                backdropFilter: 'blur(16px)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                background: 'var(--bg-glass)', backdropFilter: 'blur(16px)',
                                 transition: 'background 0.35s ease',
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -522,10 +649,7 @@ function JocastaSession() {
                                         <rect x="1" y="1" width="11" height="9" rx="1.5" stroke="var(--text-muted)" strokeWidth="1.1" />
                                         <path d="M3 5h7M3 7.5h5" stroke="var(--text-muted)" strokeWidth="1.1" strokeLinecap="round" />
                                     </svg>
-                                    <span style={{
-                                        fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-muted)',
-                                        letterSpacing: '0.1em', textTransform: 'uppercase',
-                                    }}>
+                                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                                         TRANSCRIPT — {allMessages.length} {allMessages.length === 1 ? 'MESSAGE' : 'MESSAGES'}
                                     </span>
                                 </div>
@@ -569,17 +693,14 @@ function JocastaSession() {
                 background: 'var(--bar-bg)',
                 backdropFilter: 'blur(28px)',
                 WebkitBackdropFilter: 'blur(28px)',
-                position: 'relative',
-                zIndex: 20,
+                position: 'relative', zIndex: 20,
                 transition: 'background 0.35s ease, border-color 0.35s ease',
                 boxShadow: '0 -4px 24px rgba(0,0,0,0.06)',
             }}>
-                {/* LiveKit control bar */}
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 20px 0' }}>
                     <VoiceAssistantControlBar />
                 </div>
 
-                {/* Text input */}
                 <div style={{
                     maxWidth: '720px', margin: '0 auto', width: '100%',
                     padding: '10px 20px 14px',
@@ -605,8 +726,8 @@ function JocastaSession() {
                             transition: 'border-color 0.2s, background 0.3s, color 0.3s',
                         }}
                         onFocus={e => {
-                            e.target.style.borderColor = 'rgba(200,146,42,0.5)';
-                            e.target.style.boxShadow = '0 0 0 3px rgba(200,146,42,0.07)';
+                            e.target.style.borderColor = 'var(--accent)';
+                            e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)';
                         }}
                         onBlur={e => {
                             e.target.style.borderColor = 'var(--border-mid)';
@@ -620,17 +741,15 @@ function JocastaSession() {
                         style={{
                             width: '42px', height: '42px', borderRadius: '12px',
                             background: textValue.trim() && isConnected ? 'var(--gold)' : 'var(--bg-glass)',
-                            border: `1px solid ${textValue.trim() && isConnected ? 'rgba(200,146,42,0.4)' : 'var(--border-mid)'}`,
+                            border: `1px solid ${textValue.trim() && isConnected ? 'var(--gold-glow)' : 'var(--border-mid)'}`,
                             color: textValue.trim() && isConnected ? '#0c0a06' : 'var(--text-muted)',
                             cursor: textValue.trim() && isConnected ? 'pointer' : 'not-allowed',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             flexShrink: 0, fontSize: '18px',
                             transition: 'all 0.2s',
-                            boxShadow: textValue.trim() && isConnected ? '0 4px 16px rgba(200,146,42,0.25)' : 'none',
+                            boxShadow: textValue.trim() && isConnected ? '0 4px 16px var(--accent-glow)' : 'none',
                         }}
-                    >
-                        ↑
-                    </button>
+                    >↑</button>
                 </div>
             </div>
 
@@ -670,16 +789,21 @@ export function VoiceAgent() {
                     position: 'absolute', inset: 0, pointerEvents: 'none',
                     background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(200,146,42,0.04) 0%, transparent 70%)',
                 }} />
-                <div style={{
-                    textAlign: 'center', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', gap: '28px', position: 'relative', zIndex: 1,
-                }}>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    style={{
+                        textAlign: 'center', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', gap: '28px', position: 'relative', zIndex: 1,
+                    }}
+                >
                     <div style={{
                         width: '80px', height: '80px', borderRadius: '50%',
                         background: 'radial-gradient(circle at 35% 35%, var(--gold-bright), var(--gold))',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '28px', color: '#0c0a06',
-                        boxShadow: '0 0 0 1px rgba(200,146,42,0.3), 0 0 40px rgba(200,146,42,0.2)',
+                        boxShadow: '0 0 0 1px var(--gold-glow), 0 0 40px var(--accent-glow)',
                         animation: 'orb-breathe 3s ease infinite',
                     }}>J</div>
 
@@ -694,18 +818,11 @@ export function VoiceAgent() {
 
                     {error && (
                         <div style={{
-                            padding: '10px 18px',
-                            background: 'rgba(239,68,68,0.08)',
-                            border: '1px solid rgba(239,68,68,0.25)',
-                            borderRadius: '10px',
-                            color: '#f87171',
-                            fontSize: '13px',
-                            fontFamily: 'var(--font-mono)',
-                            maxWidth: '320px',
-                            textAlign: 'left',
-                        }}>
-                            {error}
-                        </div>
+                            padding: '10px 18px', background: 'rgba(239,68,68,0.08)',
+                            border: '1px solid rgba(239,68,68,0.25)', borderRadius: '10px',
+                            color: '#f87171', fontSize: '13px', fontFamily: 'var(--font-mono)',
+                            maxWidth: '320px', textAlign: 'left',
+                        }}>{error}</div>
                     )}
 
                     <button
@@ -716,8 +833,9 @@ export function VoiceAgent() {
                             background: loading ? 'var(--bg-raised)' : 'var(--gold)',
                             color: loading ? 'var(--text-muted)' : '#0c0a06',
                             border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-                            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '15px', letterSpacing: '-0.01em',
-                            boxShadow: loading ? 'none' : '0 8px 32px rgba(200,146,42,0.3)',
+                            fontFamily: 'var(--font-display)', fontWeight: 700,
+                            fontSize: '15px', letterSpacing: '-0.01em',
+                            boxShadow: loading ? 'none' : '0 8px 32px var(--accent-glow)',
                             transition: 'all 0.2s',
                             display: 'flex', alignItems: 'center', gap: '10px',
                         }}
@@ -740,7 +858,7 @@ export function VoiceAgent() {
                             </>
                         )}
                     </button>
-                </div>
+                </motion.div>
             </div>
         );
     }

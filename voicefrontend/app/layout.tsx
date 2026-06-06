@@ -15,8 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased dark">
-      <body className="min-h-full flex flex-col">
+    <html lang="en" className="h-full antialiased dark" suppressHydrationWarning>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {/* Theme init script — runs before paint to avoid flash */}
         <script
           dangerouslySetInnerHTML={{
@@ -28,6 +28,7 @@ export default function RootLayout({
                   var dark = saved ? saved === 'dark' : prefersDark;
                   var html = document.documentElement;
                   if (dark) {
+                    html.removeAttribute('data-theme');
                     html.classList.add('dark');
                     html.classList.remove('light');
                   } else {

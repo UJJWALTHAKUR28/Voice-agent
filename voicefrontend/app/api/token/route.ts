@@ -18,13 +18,14 @@ const AGENT_NAME = 'voice-agent';
 
 // ── Must match what the backend room is named ─────────────────────────────
 // Backend logs show room="jocasta-room" — was incorrectly set to "aria-room"
-const ROOM_NAME = 'jocasta-room';
+
 
 export async function GET(req: NextRequest) {
     const apiKey = process.env.LIVEKIT_API_KEY;
     const apiSecret = process.env.LIVEKIT_API_SECRET;
     const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
-
+    const ROOM_NAME = req.nextUrl.searchParams.get('room')
+        ?? `jocasta-${Date.now()}`;;
     if (!apiKey || !apiSecret || !wsUrl) {
         console.error('[token] Missing env vars:', {
             hasKey: !!apiKey,
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
         canPublishData: true,
     });
 
-    // Attach agent dispatch — this is what triggers the Python agent
+    // Attach agent dispatch
     at.roomConfig = new RoomConfiguration({
         agents: [
             new RoomAgentDispatch({
@@ -63,21 +64,60 @@ export async function GET(req: NextRequest) {
         ],
     });
 
+    // DEBUG BEFORE JWT CREATION
+    console.log('\n========== BEFORE JWT ==========');
+    console.log('Room:', ROOM_NAME);
+    console.log('Identity:', identity);
+    console.log('Agent Name:', AGENT_NAME);
+    console.dir(at.roomConfig, { depth: null });
+    console.log('================================\n');
+
     const token = await at.toJwt();
 
-    // Debug log in dev
+    // DEBUG AFTER JWT CREATION
     if (process.env.NODE_ENV === 'development') {
         try {
-            const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-            const hasDispatch = !!payload?.video?.roomConfig?.agents?.length;
+            const payload = JSON.parse(
+                Buffer.from(token.split('.')[1], 'base64').toString()
+            );
+
+            console.log('\n========== JWT PAYLOAD ==========');
+            console.log(JSON.stringify(payload, null, 2));
+            console.log('=================================\n');
+
+            console.log('\n========== ROOM CONFIG ==========');
+            console.log(
+                JSON.stringify(payload?.video?.roomConfig ?? null, null, 2)
+            );
+            console.log('=================================\n');
+
+            const hasDispatch =
+                !!payload?.video?.roomConfig?.agents?.length;
+
             console.log(
                 '[token] identity=%s | room=%s | dispatch=%s',
-                identity, ROOM_NAME, hasDispatch,
+                identity,
+                ROOM_NAME,
+                hasDispatch,
             );
-            if (!hasDispatch) {
-                console.warn('[token] WARNING: RoomAgentDispatch missing from token!');
+
+            if (hasDispatch) {
+                console.log(
+                    '[token] agents:',
+                    JSON.stringify(
+                        payload.video.roomConfig.agents,
+                        null,
+                        2
+                    )
+                );
+            } else {
+                console.warn(
+                    '[token] WARNING: RoomAgentDispatch missing from JWT!'
+                );
             }
-        } catch { /* ignore */ }
+        } catch (err) {
+            console.error('[token] JWT decode failed:', err);
+        }
     }
 
     return NextResponse.json({ token, url: wsUrl, room: ROOM_NAME });

@@ -74,7 +74,7 @@ function ErrorIcon() {
 
 // ── Variant styles (uses CSS vars so they adapt to light/dark) ────────────────
 const VARIANT_STYLES: Record<NonNullable<ToastItem['variant']>, {
-    icon: JSX.Element;
+    icon: React.ReactNode;
     iconColor: string;
     accent: string;
     border: string;

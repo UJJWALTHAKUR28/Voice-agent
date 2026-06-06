@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
 @import "tailwindcss";
 
-/* ── Dark theme (default) ────────────────────────────────────────────────── */
+/* ── Dark theme (default) ─────────────────────────────────────────────────── */
 :root {
     /* Surface stack */
     --bg-void: #060608;
@@ -23,7 +23,7 @@
     --text-muted: #4a4a5c;
     --text-ghost: #2f2f3c;
 
-    /* Jocasta gold */
+    /* Jocasta gold — DARK theme accent */
     --gold: #c8922a;
     --gold-bright: #e8ac44;
     --gold-dim: rgba(200, 146, 42, 0.12);
@@ -69,56 +69,75 @@
     --shadow-xl: 0 16px 60px rgba(0, 0, 0, 0.9);
 }
 
-/* ── Light theme ─────────────────────────────────────────────────────────── */
+/* ── Light theme — PREMIUM REDESIGN ──────────────────────────────────────── */
+/*                                                                              */
+/*   Philosophy: warm ivory paper base, deep ink text, deep indigo/violet       */
+/*   accent (replaces gold which is invisible on white).                        */
+/*   Sphere stays gold/amber — it's rendered on canvas with its own             */
+/*   contrast, but UI chrome switches to deep indigo accent.                    */
+/*                                                                              */
 [data-theme="light"],
 html.light {
-    --bg-void: #f0eeea;
-    --bg-base: #f5f3ef;
-    --bg-surface: #faf9f6;
+    /* Surfaces — warm ivory parchment feel, NOT cold white */
+    --bg-void: #f4f1ec;
+    --bg-base: #f8f5f0;
+    --bg-surface: #fdfcf9;
     --bg-raised: #ffffff;
-    --bg-overlay: #ece9e3;
-    --bg-glass: rgba(0, 0, 0, 0.03);
-    --bg-glass-hover: rgba(0, 0, 0, 0.06);
+    --bg-overlay: #ede9e2;
+    --bg-glass: rgba(20, 16, 10, 0.04);
+    --bg-glass-hover: rgba(20, 16, 10, 0.08);
 
-    --border-dim: rgba(0, 0, 0, 0.07);
-    --border-mid: rgba(0, 0, 0, 0.12);
-    --border-strong: rgba(0, 0, 0, 0.20);
+    /* Borders — warm, not cool-gray */
+    --border-dim: rgba(30, 20, 10, 0.08);
+    --border-mid: rgba(30, 20, 10, 0.14);
+    --border-strong: rgba(30, 20, 10, 0.24);
 
-    --text-primary: #18181f;
-    --text-secondary: #4e4e62;
-    --text-muted: #8a8a9a;
-    --text-ghost: #bebece;
+    /* Text — rich near-black ink, not pure #000 */
+    --text-primary: #16120c;
+    --text-secondary: #4a4436;
+    --text-muted: #8c8070;
+    --text-ghost: #c0b8a8;
 
-    --gold: #a06a10;
-    --gold-bright: #c07818;
-    --gold-dim: rgba(160, 106, 16, 0.12);
-    --gold-glow: rgba(160, 106, 16, 0.20);
-    --gold-halo: rgba(160, 106, 16, 0.06);
+    /* LIGHT THEME ACCENT: deep indigo/violet — replaces gold for UI chrome     */
+    /* Sphere canvas still uses its own hardcoded amber — this is UI-only        */
+    --gold: #4338ca;
+    /* deep indigo — the "action" colour          */
+    --gold-bright: #5b4de8;
+    /* hover/active state                         */
+    --gold-dim: rgba(67, 56, 202, 0.10);
+    --gold-glow: rgba(67, 56, 202, 0.20);
+    --gold-halo: rgba(67, 56, 202, 0.06);
 
-    --c-idle: #b0b0c4;
-    --c-listen: #0aaa78;
-    --c-think: #7c5ec8;
-    --c-speak: #2068cc;
+    /* State colours — adjusted for light bg */
+    --c-idle: #a09888;
+    --c-listen: #059669;
+    /* rich green, visible on cream */
+    --c-think: #7c3aed;
+    /* violet */
+    --c-speak: #1d4ed8;
+    /* deep blue */
 
-    --bubble-user: rgba(200, 196, 220, 0.55);
-    --bubble-agent: rgba(255, 255, 255, 0.85);
+    /* Bubbles */
+    --bubble-user: rgba(67, 56, 202, 0.08);
+    --bubble-agent: rgba(255, 255, 255, 0.95);
 
-    /* Bottom bar — LIGHT: visible warm white panel */
-    --bar-bg: rgba(248, 246, 241, 0.97);
-    --bar-border: rgba(0, 0, 0, 0.10);
+    /* Bottom bar */
+    --bar-bg: rgba(250, 248, 244, 0.97);
+    --bar-border: rgba(30, 20, 10, 0.10);
 
-    /* Navbar — LIGHT: clean translucent warm */
-    --nav-bg: rgba(248, 246, 241, 0.92);
-    --nav-border: rgba(0, 0, 0, 0.08);
+    /* Navbar */
+    --nav-bg: rgba(248, 245, 240, 0.94);
+    --nav-border: rgba(30, 20, 10, 0.08);
 
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.10);
-    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
-    --shadow-xl: 0 16px 60px rgba(0, 0, 0, 0.14);
+    /* Shadows — warm tinted, not flat gray */
+    --shadow-xs: 0 1px 2px rgba(20, 14, 6, 0.06);
+    --shadow-sm: 0 2px 8px rgba(20, 14, 6, 0.08);
+    --shadow-md: 0 4px 20px rgba(20, 14, 6, 0.10);
+    --shadow-lg: 0 8px 40px rgba(20, 14, 6, 0.12);
+    --shadow-xl: 0 16px 60px rgba(20, 14, 6, 0.14);
 }
 
-/* ── Reset ───────────────────────────────────────────────────────────────── */
+/* ── Reset ────────────────────────────────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -137,14 +156,14 @@ body {
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background 0.35s ease, color 0.35s ease;
+    transition: background 0.4s ease, color 0.4s ease;
 }
 
 #__next {
     height: 100%;
 }
 
-/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
     width: 3px;
 }
@@ -158,7 +177,7 @@ body {
     border-radius: 3px;
 }
 
-/* ── Typography ──────────────────────────────────────────────────────────── */
+/* ── Typography ───────────────────────────────────────────────────────────── */
 .font-display {
     font-family: var(--font-display);
 }
@@ -167,7 +186,7 @@ body {
     font-family: var(--font-mono);
 }
 
-/* ── Animations ──────────────────────────────────────────────────────────── */
+/* ── Animations ───────────────────────────────────────────────────────────── */
 @keyframes fade-up {
     from {
         opacity: 0;
@@ -210,7 +229,7 @@ body {
     }
 
     50% {
-        opacity: 0.5;
+        opacity: 0.45;
     }
 }
 
@@ -264,28 +283,6 @@ body {
     }
 }
 
-@keyframes noise-drift {
-    0% {
-        transform: translate(0, 0);
-    }
-
-    25% {
-        transform: translate(-1px, 1px);
-    }
-
-    50% {
-        transform: translate(1px, -1px);
-    }
-
-    75% {
-        transform: translate(-1px, -1px);
-    }
-
-    100% {
-        transform: translate(0, 0);
-    }
-}
-
 @keyframes orb-breathe {
 
     0%,
@@ -297,16 +294,6 @@ body {
     50% {
         transform: scale(1.04);
         filter: brightness(1.12);
-    }
-}
-
-@keyframes particles-spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
     }
 }
 
@@ -325,7 +312,7 @@ body {
     }
 
     100% {
-        transform: translateY(100vh);
+        transform: translateY(200vh);
         opacity: 0;
     }
 }
@@ -382,6 +369,38 @@ body {
     }
 }
 
+@keyframes noise-drift {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    25% {
+        transform: translate(-1px, 1px);
+    }
+
+    50% {
+        transform: translate(1px, -1px);
+    }
+
+    75% {
+        transform: translate(-1px, -1px);
+    }
+
+    100% {
+        transform: translate(0, 0);
+    }
+}
+
+@keyframes particles-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .fade-up {
     animation: fade-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -398,7 +417,7 @@ body {
     animation: pulse-soft 2s ease infinite;
 }
 
-/* ── LiveKit overrides — CRITICAL: must adapt to both themes ─────────────── */
+/* ── LiveKit overrides — adapts to both themes ────────────────────────────── */
 .lk-room-container {
     background: transparent !important;
 }
@@ -408,7 +427,6 @@ body {
     border: none !important;
 }
 
-/* Base button — adapts to CSS vars */
 .lk-button {
     background: var(--bg-raised) !important;
     border: 1px solid var(--border-mid) !important;
@@ -422,7 +440,6 @@ body {
 .lk-button:hover {
     background: var(--bg-overlay) !important;
     border-color: var(--border-strong) !important;
-    color: var(--text-primary) !important;
 }
 
 .lk-button[data-lk-active="true"] {
@@ -431,12 +448,10 @@ body {
     color: var(--gold-bright) !important;
 }
 
-/* Disconnect / leave button — needs to be always visible */
+/* Disconnect */
 .lk-disconnect-button,
 .lk-button[aria-label*="disconnect" i],
-.lk-button[aria-label*="leave" i],
-.lk-button[title*="disconnect" i],
-.lk-button[title*="leave" i] {
+.lk-button[aria-label*="leave" i] {
     background: rgba(239, 68, 68, 0.1) !important;
     border-color: rgba(239, 68, 68, 0.3) !important;
     color: #f87171 !important;
@@ -450,20 +465,19 @@ body {
     color: #fca5a5 !important;
 }
 
-/* Light theme LiveKit overrides */
+/* Light mode LiveKit overrides */
 [data-theme="light"] .lk-button,
 html.light .lk-button {
     background: var(--bg-raised) !important;
     border-color: var(--border-mid) !important;
     color: var(--text-primary) !important;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 1px 4px rgba(20, 14, 6, 0.06) !important;
 }
 
 [data-theme="light"] .lk-button:hover,
 html.light .lk-button:hover {
     background: var(--bg-overlay) !important;
     border-color: var(--border-strong) !important;
-    color: var(--text-primary) !important;
 }
 
 [data-theme="light"] .lk-button[data-lk-active="true"],
@@ -474,30 +488,25 @@ html.light .lk-button[data-lk-active="true"] {
 }
 
 [data-theme="light"] .lk-disconnect-button,
-html.light .lk-disconnect-button,
-[data-theme="light"] .lk-button[aria-label*="disconnect" i],
-html.light .lk-button[aria-label*="disconnect" i],
-[data-theme="light"] .lk-button[aria-label*="leave" i],
-html.light .lk-button[aria-label*="leave" i] {
+html.light .lk-disconnect-button {
     background: rgba(220, 38, 38, 0.08) !important;
     border-color: rgba(220, 38, 38, 0.3) !important;
     color: #dc2626 !important;
 }
 
-/* Mic muted state — visible in both themes */
+/* Mic muted */
 .lk-button[data-lk-source="microphone"][data-lk-enabled="false"] {
     background: rgba(239, 68, 68, 0.1) !important;
     border-color: rgba(239, 68, 68, 0.3) !important;
     color: #f87171 !important;
 }
 
-/* Ensure all text in lk controls inherits properly */
 .lk-control-bar *,
 .lk-control-bar svg {
     color: inherit !important;
 }
 
-/* ── Noise texture overlay ───────────────────────────────────────────────── */
+/* ── Noise texture ────────────────────────────────────────────────────────── */
 .noise-overlay {
     position: fixed;
     inset: 0;
@@ -508,13 +517,18 @@ html.light .lk-button[aria-label*="leave" i] {
     background-size: 180px 180px;
 }
 
-/* In light mode, reduce noise intensity */
 [data-theme="light"] .noise-overlay,
 html.light .noise-overlay {
-    opacity: 0.012;
+    opacity: 0.01;
 }
 
-/* ── Smooth theme transitions on all major elements ─────────────────────── */
+/* ── Light mode: atmospheric grid adjustments ─────────────────────────────── */
+[data-theme="light"] .noise-overlay,
+html.light .noise-overlay {
+    opacity: 0.009;
+}
+
+/* ── Smooth theme transitions ─────────────────────────────────────────────── */
 nav,
 main,
 .lk-button,
@@ -522,8 +536,39 @@ textarea,
 button,
 input {
     transition:
-        background-color 0.3s ease,
-        border-color 0.3s ease,
-        color 0.3s ease,
-        box-shadow 0.3s ease !important;
+        background-color 0.35s ease,
+        border-color 0.35s ease,
+        color 0.35s ease,
+        box-shadow 0.35s ease !important;
+}
+
+/* ── Light theme: sphere canvas extra contrast booster ───────────────────── */
+/* The canvas uses its own rendering so it already has amber on void-dark bg.  */
+/* In light mode we boost the drop-shadow so the sphere reads against cream.   */
+[data-theme="light"] canvas,
+html.light canvas {
+    filter: drop-shadow(0 0 40px rgba(67, 56, 202, 0.25)) drop-shadow(0 0 80px rgba(67, 56, 202, 0.10)) !important;
+}
+
+/* ── Landing page: hero text gradient in light mode ──────────────────────── */
+[data-theme="light"] h1,
+html.light h1 {
+    /* subtle warm-to-neutral gradient for large hero text */
+    background: linear-gradient(160deg, #16120c 0%, #3a3028 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Dark mode: same treatment but lighter */
+:root h1 {
+    background: linear-gradient(160deg, #f2f2f6 0%, #c8c8dc 50%, #8e8ea8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ── Sphere containers: ensure no glow clipping ──────────────────────────── */
+canvas {
+    overflow: visible;
 }
