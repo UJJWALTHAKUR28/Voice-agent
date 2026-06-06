@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
 @import "tailwindcss";
 
+/* ── Dark theme (default) ────────────────────────────────────────────────── */
 :root {
     /* Surface stack */
     --bg-void: #060608;
@@ -39,6 +40,14 @@
     --bubble-user: #17172090;
     --bubble-agent: #0f0f1480;
 
+    /* Bottom bar */
+    --bar-bg: rgba(6, 6, 8, 0.95);
+    --bar-border: rgba(255, 255, 255, 0.06);
+
+    /* Navbar */
+    --nav-bg: rgba(6, 6, 8, 0.88);
+    --nav-border: rgba(255, 255, 255, 0.05);
+
     /* Radii */
     --r-xs: 4px;
     --r-sm: 8px;
@@ -60,44 +69,53 @@
     --shadow-xl: 0 16px 60px rgba(0, 0, 0, 0.9);
 }
 
-/* Light theme */
-[data-theme="light"] {
+/* ── Light theme ─────────────────────────────────────────────────────────── */
+[data-theme="light"],
+html.light {
     --bg-void: #f0eeea;
     --bg-base: #f5f3ef;
     --bg-surface: #faf9f6;
     --bg-raised: #ffffff;
-    --bg-overlay: #f0eeea;
-    --bg-glass: rgba(0, 0, 0, 0.025);
-    --bg-glass-hover: rgba(0, 0, 0, 0.05);
+    --bg-overlay: #ece9e3;
+    --bg-glass: rgba(0, 0, 0, 0.03);
+    --bg-glass-hover: rgba(0, 0, 0, 0.06);
 
-    --border-dim: rgba(0, 0, 0, 0.06);
-    --border-mid: rgba(0, 0, 0, 0.10);
-    --border-strong: rgba(0, 0, 0, 0.18);
+    --border-dim: rgba(0, 0, 0, 0.07);
+    --border-mid: rgba(0, 0, 0, 0.12);
+    --border-strong: rgba(0, 0, 0, 0.20);
 
-    --text-primary: #1a1a22;
-    --text-secondary: #5a5a6e;
-    --text-muted: #9a9aac;
-    --text-ghost: #c0c0cc;
+    --text-primary: #18181f;
+    --text-secondary: #4e4e62;
+    --text-muted: #8a8a9a;
+    --text-ghost: #bebece;
 
     --gold: #a06a10;
-    --gold-bright: #c08020;
-    --gold-dim: rgba(160, 106, 16, 0.10);
-    --gold-glow: rgba(160, 106, 16, 0.18);
-    --gold-halo: rgba(160, 106, 16, 0.05);
+    --gold-bright: #c07818;
+    --gold-dim: rgba(160, 106, 16, 0.12);
+    --gold-glow: rgba(160, 106, 16, 0.20);
+    --gold-halo: rgba(160, 106, 16, 0.06);
 
-    --c-idle: #c8c8d8;
+    --c-idle: #b0b0c4;
     --c-listen: #0aaa78;
     --c-think: #7c5ec8;
-    --c-speak: #2880e0;
+    --c-speak: #2068cc;
 
-    --bubble-user: rgba(220, 218, 230, 0.6);
-    --bubble-agent: rgba(255, 255, 255, 0.8);
+    --bubble-user: rgba(200, 196, 220, 0.55);
+    --bubble-agent: rgba(255, 255, 255, 0.85);
 
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.08);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.10);
-    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.12);
-    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.14);
-    --shadow-xl: 0 16px 60px rgba(0, 0, 0, 0.16);
+    /* Bottom bar — LIGHT: visible warm white panel */
+    --bar-bg: rgba(248, 246, 241, 0.97);
+    --bar-border: rgba(0, 0, 0, 0.10);
+
+    /* Navbar — LIGHT: clean translucent warm */
+    --nav-bg: rgba(248, 246, 241, 0.92);
+    --nav-border: rgba(0, 0, 0, 0.08);
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.10);
+    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 16px 60px rgba(0, 0, 0, 0.14);
 }
 
 /* ── Reset ───────────────────────────────────────────────────────────────── */
@@ -119,7 +137,7 @@ body {
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background 0.4s ease, color 0.4s ease;
+    transition: background 0.35s ease, color 0.35s ease;
 }
 
 #__next {
@@ -380,7 +398,7 @@ body {
     animation: pulse-soft 2s ease infinite;
 }
 
-/* ── LiveKit overrides ───────────────────────────────────────────────────── */
+/* ── LiveKit overrides — CRITICAL: must adapt to both themes ─────────────── */
 .lk-room-container {
     background: transparent !important;
 }
@@ -390,24 +408,93 @@ body {
     border: none !important;
 }
 
+/* Base button — adapts to CSS vars */
 .lk-button {
-    background: var(--bg-glass) !important;
+    background: var(--bg-raised) !important;
     border: 1px solid var(--border-mid) !important;
     color: var(--text-primary) !important;
     border-radius: var(--r-md) !important;
     font-family: var(--font-ui) !important;
     transition: all 0.2s !important;
+    box-shadow: var(--shadow-xs) !important;
 }
 
 .lk-button:hover {
-    background: var(--bg-glass-hover) !important;
+    background: var(--bg-overlay) !important;
     border-color: var(--border-strong) !important;
+    color: var(--text-primary) !important;
 }
 
 .lk-button[data-lk-active="true"] {
     background: var(--gold-dim) !important;
     border-color: var(--gold) !important;
     color: var(--gold-bright) !important;
+}
+
+/* Disconnect / leave button — needs to be always visible */
+.lk-disconnect-button,
+.lk-button[aria-label*="disconnect" i],
+.lk-button[aria-label*="leave" i],
+.lk-button[title*="disconnect" i],
+.lk-button[title*="leave" i] {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    color: #f87171 !important;
+}
+
+.lk-disconnect-button:hover,
+.lk-button[aria-label*="disconnect" i]:hover,
+.lk-button[aria-label*="leave" i]:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: rgba(239, 68, 68, 0.5) !important;
+    color: #fca5a5 !important;
+}
+
+/* Light theme LiveKit overrides */
+[data-theme="light"] .lk-button,
+html.light .lk-button {
+    background: var(--bg-raised) !important;
+    border-color: var(--border-mid) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .lk-button:hover,
+html.light .lk-button:hover {
+    background: var(--bg-overlay) !important;
+    border-color: var(--border-strong) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .lk-button[data-lk-active="true"],
+html.light .lk-button[data-lk-active="true"] {
+    background: var(--gold-dim) !important;
+    border-color: var(--gold) !important;
+    color: var(--gold) !important;
+}
+
+[data-theme="light"] .lk-disconnect-button,
+html.light .lk-disconnect-button,
+[data-theme="light"] .lk-button[aria-label*="disconnect" i],
+html.light .lk-button[aria-label*="disconnect" i],
+[data-theme="light"] .lk-button[aria-label*="leave" i],
+html.light .lk-button[aria-label*="leave" i] {
+    background: rgba(220, 38, 38, 0.08) !important;
+    border-color: rgba(220, 38, 38, 0.3) !important;
+    color: #dc2626 !important;
+}
+
+/* Mic muted state — visible in both themes */
+.lk-button[data-lk-source="microphone"][data-lk-enabled="false"] {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    color: #f87171 !important;
+}
+
+/* Ensure all text in lk controls inherits properly */
+.lk-control-bar *,
+.lk-control-bar svg {
+    color: inherit !important;
 }
 
 /* ── Noise texture overlay ───────────────────────────────────────────────── */
@@ -419,4 +506,24 @@ body {
     opacity: 0.018;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     background-size: 180px 180px;
+}
+
+/* In light mode, reduce noise intensity */
+[data-theme="light"] .noise-overlay,
+html.light .noise-overlay {
+    opacity: 0.012;
+}
+
+/* ── Smooth theme transitions on all major elements ─────────────────────── */
+nav,
+main,
+.lk-button,
+textarea,
+button,
+input {
+    transition:
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease,
+        box-shadow 0.3s ease !important;
 }

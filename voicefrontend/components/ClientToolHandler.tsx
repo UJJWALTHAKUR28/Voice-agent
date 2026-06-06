@@ -1,19 +1,15 @@
-// components/ClientToolHandler.tsx
-//
-// Listens for data messages on topic="client-tool" from the Python agent
-// and executes them in the browser.
-//
-// Handles:
-//   change_theme      → sets data-theme attribute + class on <html>
-//   show_notification → fires a browser notification (toast fallback)
-//   open_url          → opens a URL in a new tab
-//   play_sound        → plays a synthesized sound effect via Web Audio API
-
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+// components/ClientToolHandler.tsx
+//
+// Listens for data messages on topic="client-tool" from the Python agent.
+// Now uses: central theme utility (utils/theme.ts) + ThemeToast push API.
+
+import { useEffect, useCallback } from 'react';
 import { useRoomContext } from '@livekit/components-react';
 import { RoomEvent } from 'livekit-client';
+import { applyTheme } from '@/utils/theme';
+import { pushToast } from './Themetoast';
 
 interface ClientToolMsg {
     type: 'client_tool';
@@ -22,7 +18,6 @@ interface ClientToolMsg {
 }
 
 // ── Web Audio sound synthesizer ─────────────────────────────────────────────
-// No external files needed — pure Web Audio API
 
 function createAudioContext(): AudioContext | null {
     try {
@@ -33,9 +28,8 @@ function createAudioContext(): AudioContext | null {
 }
 
 const soundLibrary: Record<string, (ctx: AudioContext) => void> = {
-    // Session start: ascending chime
     session_start: (ctx) => {
-        const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+        const notes = [523.25, 659.25, 783.99, 1046.5];
         notes.forEach((freq, i) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -52,7 +46,6 @@ const soundLibrary: Record<string, (ctx: AudioContext) => void> = {
         });
     },
 
-    // Notification: soft double ping
     notification: (ctx) => {
         [880, 1100].forEach((freq, i) => {
             const osc = ctx.createOscillator();
@@ -70,7 +63,6 @@ const soundLibrary: Record<string, (ctx: AudioContext) => void> = {
         });
     },
 
-    // Success: positive chime
     success: (ctx) => {
         [698.46, 880, 1046.5].forEach((freq, i) => {
             const osc = ctx.createOscillator();
@@ -88,7 +80,6 @@ const soundLibrary: Record<string, (ctx: AudioContext) => void> = {
         });
     },
 
-    // Error: descending tone
     error: (ctx) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -103,7 +94,6 @@ const soundLibrary: Record<string, (ctx: AudioContext) => void> = {
         osc.stop(ctx.currentTime + 0.45);
     },
 
-    // Click: subtle UI feedback
     click: (ctx) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -117,7 +107,6 @@ const soundLibrary: Record<string, (ctx: AudioContext) => void> = {
         osc.stop(ctx.currentTime + 0.1);
     },
 
-    // Thinking: subtle processing hum
     thinking: (ctx) => {
         const osc = ctx.createOscillator();
         const lfo = ctx.createOscillator();
@@ -150,96 +139,6 @@ export function playSound(soundName: string) {
     fn(ctx);
 }
 
-// ── Toast notification state ────────────────────────────────────────────────
-interface Toast {
-    id: string;
-    title: string;
-    message: string;
-}
-
-let toastSetter: ((fn: (prev: Toast[]) => Toast[]) => void) | null = null;
-
-function showToast(title: string, message: string) {
-    if (!toastSetter) return;
-    const id = `toast-${Date.now()}`;
-    toastSetter(prev => [...prev, { id, title, message }]);
-    setTimeout(() => {
-        toastSetter?.(prev => prev.filter(t => t.id !== id));
-    }, 4500);
-}
-
-// ── Toast Renderer ───────────────────────────────────────────────────────────
-export function ToastContainer() {
-    const [toasts, setToasts] = useState<Toast[]>([]);
-    toastSetter = setToasts;
-
-    return (
-        <div style={{
-            position: 'fixed',
-            top: '72px',
-            right: '20px',
-            zIndex: 9999,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            pointerEvents: 'none',
-        }}>
-            {toasts.map(toast => (
-                <div
-                    key={toast.id}
-                    style={{
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        background: 'rgba(16,16,21,0.95)',
-                        border: '1px solid var(--border-mid)',
-                        backdropFilter: 'blur(20px)',
-                        WebkitBackdropFilter: 'blur(20px)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-                        minWidth: '240px',
-                        maxWidth: '320px',
-                        animation: 'toast-in 0.3s cubic-bezier(0.16,1,0.3,1) forwards',
-                        pointerEvents: 'auto',
-                        display: 'flex',
-                        gap: '10px',
-                        alignItems: 'flex-start',
-                    }}
-                >
-                    <div style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: 'var(--gold)',
-                        boxShadow: '0 0 8px var(--gold-glow)',
-                        marginTop: '4px',
-                        flexShrink: 0,
-                    }} />
-                    <div>
-                        <div style={{
-                            fontFamily: 'var(--font-display)',
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            color: 'var(--text-primary)',
-                            letterSpacing: '-0.01em',
-                        }}>
-                            {toast.title}
-                        </div>
-                        {toast.message && (
-                            <div style={{
-                                fontFamily: 'var(--font-ui)',
-                                fontSize: '12px',
-                                color: 'var(--text-secondary)',
-                                marginTop: '2px',
-                            }}>
-                                {toast.message}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-}
-
 // ── Main handler ─────────────────────────────────────────────────────────────
 export function ClientToolHandler() {
     const room = useRoomContext();
@@ -248,26 +147,17 @@ export function ClientToolHandler() {
         switch (action) {
 
             case 'change_theme': {
-                const theme = (data.theme as string) === 'light' ? 'light' : 'dark';
-                const html = document.documentElement;
-                if (theme === 'light') {
-                    html.setAttribute('data-theme', 'light');
-                    html.classList.remove('dark');
-                    html.classList.add('light');
-                } else {
-                    html.removeAttribute('data-theme');
-                    html.classList.remove('light');
-                    html.classList.add('dark');
-                }
-                localStorage.setItem('jocasta-theme', theme);
-                console.info('[Jocasta] theme →', theme);
+                // Use central theme utility — plays sound + shows toast automatically
+                const dark = (data.theme as string) !== 'light';
+                applyTheme(dark, { sound: true, toast: true });
+                console.info('[Jocasta] theme →', dark ? 'dark' : 'light');
                 break;
             }
 
             case 'show_notification': {
                 const title = (data.title as string) ?? 'Jocasta';
                 const message = (data.message as string) ?? '';
-                showToast(title, message);
+                pushToast({ title, message, variant: 'info' });
                 playSound('notification');
                 if ('Notification' in window && Notification.permission === 'granted') {
                     new Notification(title, { body: message });
@@ -302,14 +192,12 @@ export function ClientToolHandler() {
             topic?: string,
         ) => {
             if (topic !== 'client-tool') return;
-
             let msg: ClientToolMsg;
             try {
                 msg = JSON.parse(new TextDecoder().decode(payload));
             } catch {
                 return;
             }
-
             if (msg.type === 'client_tool') {
                 runAction(msg.action, msg.data ?? {});
             }
@@ -319,5 +207,6 @@ export function ClientToolHandler() {
         return () => { room.off(RoomEvent.DataReceived, onData); };
     }, [room, runAction]);
 
-    return <ToastContainer />;
+    // No longer renders ToastContainer — that's in layout.tsx via ThemeToastContainer
+    return null;
 }

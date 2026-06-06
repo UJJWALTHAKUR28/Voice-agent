@@ -2,21 +2,7 @@
 
 // components/VoiceAgent.tsx
 // Jocasta — Full-screen voice interface
-//
-// Layout (Claude-like):
-//   ┌─────────────────────────────────────┐
-//   │  [Navbar — 56px]                    │
-//   ├─────────────┬───────────────────────┤
-//   │             │                       │
-//   │    Sphere   │   Chat transcript     │
-//   │   (always   │   (scrollable)        │
-//   │   visible)  │                       │
-//   │             │                       │
-//   ├─────────────┴───────────────────────┤
-//   │  [Text input + controls — 80px]     │
-//   └─────────────────────────────────────┘
-//
-// On mobile: sphere on top, transcript below, stacked
+// Full light/dark theme support — all panels use CSS vars
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
@@ -117,7 +103,6 @@ function AgentOrb({ state }: { state: AgentState }) {
                 return { px: cx + rx * Rb * sc, py: cy + fy * Rb * sc, z: fz };
             }
 
-            // Halo
             const haloA = isSpeaking ? 0.18 : isListening ? 0.08 : 0.03;
             const halo = ctx.createRadialGradient(cx, cy, Rb * 0.3, cx, cy, Rb * 1.6);
             halo.addColorStop(0, `rgba(200,146,42,${haloA})`);
@@ -125,7 +110,6 @@ function AgentOrb({ state }: { state: AgentState }) {
             ctx.fillStyle = halo;
             ctx.fillRect(0, 0, W, H);
 
-            // Edges
             for (const [a, b] of edges) {
                 const pA = project(nodes[a].x, nodes[a].y, nodes[a].z);
                 const pB = project(nodes[b].x, nodes[b].y, nodes[b].z);
@@ -144,7 +128,6 @@ function AgentOrb({ state }: { state: AgentState }) {
                 ctx.stroke();
             }
 
-            // Nodes
             for (let i = 0; i < N; i++) {
                 const p = project(nodes[i].x, nodes[i].y, nodes[i].z);
                 const vis = (p.z + 1) / 2;
@@ -162,7 +145,6 @@ function AgentOrb({ state }: { state: AgentState }) {
                 }
             }
 
-            // Pulse rings when speaking
             if (isSpeaking) {
                 for (let ring = 0; ring < 4; ring++) {
                     const phase = (pulseT * 0.35 + ring * 0.65) % 1;
@@ -176,7 +158,6 @@ function AgentOrb({ state }: { state: AgentState }) {
                 }
             }
 
-            // Thinking: dashed arc
             if (isThinking) {
                 ctx.save();
                 ctx.translate(cx, cy);
@@ -191,7 +172,6 @@ function AgentOrb({ state }: { state: AgentState }) {
                 ctx.restore();
             }
 
-            // Listening: pulsing ring
             if (isListening) {
                 ctx.beginPath();
                 ctx.arc(cx, cy, Rb * 1.1, 0, Math.PI * 2);
@@ -223,12 +203,7 @@ function AgentOrb({ state }: { state: AgentState }) {
     };
 
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '14px',
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
             <canvas
                 ref={canvasRef}
                 style={{
@@ -241,7 +216,6 @@ function AgentOrb({ state }: { state: AgentState }) {
                     transition: 'filter 0.6s ease',
                 }}
             />
-            {/* Status pill */}
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -249,14 +223,12 @@ function AgentOrb({ state }: { state: AgentState }) {
                 padding: '5px 14px',
                 borderRadius: '100px',
                 border: `1px solid ${stateColors[state]}30`,
-                background: `${stateColors[state]}0f`,
+                background: `${stateColors[state]}12`,
                 backdropFilter: 'blur(12px)',
                 transition: 'all 0.4s ease',
             }}>
                 <span style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
+                    width: '6px', height: '6px', borderRadius: '50%',
                     background: stateColors[state],
                     boxShadow: `0 0 8px ${stateColors[state]}aa`,
                     animation: (state === 'speaking' || state === 'listening') ? 'pulse-soft 1.8s ease infinite' : 'none',
@@ -283,40 +255,21 @@ function MessageBubble({ item }: { item: ConversationItem }) {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-                display: 'flex',
-                justifyContent: isUser ? 'flex-end' : 'flex-start',
-                marginBottom: '2px',
-            }}
+            style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: '2px' }}
         >
-            {/* Agent avatar dot */}
             {!isUser && (
                 <div style={{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '50%',
+                    width: '22px', height: '22px', borderRadius: '50%',
                     background: 'radial-gradient(circle at 35% 35%, var(--gold-bright), var(--gold))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 800,
-                    fontSize: '10px',
-                    color: '#0c0a06',
-                    flexShrink: 0,
-                    marginRight: '8px',
-                    marginTop: '2px',
-                    alignSelf: 'flex-end',
-                }}>
-                    J
-                </div>
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '10px', color: '#0c0a06',
+                    flexShrink: 0, marginRight: '8px', marginTop: '2px', alignSelf: 'flex-end',
+                }}>J</div>
             )}
             <div style={{
                 maxWidth: '72%',
                 padding: '10px 14px',
-                borderRadius: isUser
-                    ? 'var(--r-lg) var(--r-lg) 4px var(--r-lg)'
-                    : 'var(--r-lg) var(--r-lg) var(--r-lg) 4px',
+                borderRadius: isUser ? 'var(--r-lg) var(--r-lg) 4px var(--r-lg)' : 'var(--r-lg) var(--r-lg) var(--r-lg) 4px',
                 background: isUser ? 'var(--bubble-user)' : 'var(--bubble-agent)',
                 border: '1px solid var(--border-dim)',
                 backdropFilter: 'blur(16px)',
@@ -327,6 +280,7 @@ function MessageBubble({ item }: { item: ConversationItem }) {
                 fontFamily: 'var(--font-ui)',
                 fontWeight: 300,
                 wordBreak: 'break-word',
+                boxShadow: 'var(--shadow-xs)',
             }}>
                 {item.content}
             </div>
@@ -342,8 +296,7 @@ function ThinkingBubble() {
                 width: '22px', height: '22px', borderRadius: '50%',
                 background: 'radial-gradient(circle at 35% 35%, var(--gold-bright), var(--gold))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '10px', color: '#0c0a06',
-                flexShrink: 0,
+                fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '10px', color: '#0c0a06', flexShrink: 0,
             }}>J</div>
             <div style={{
                 padding: '12px 16px',
@@ -381,7 +334,6 @@ function JocastaSession() {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const sessionStarted = useRef(false);
 
-    // Play session_start sound once
     useEffect(() => {
         if (!sessionStarted.current && agentState !== 'initializing') {
             sessionStarted.current = true;
@@ -389,7 +341,6 @@ function JocastaSession() {
         }
     }, [agentState]);
 
-    // Stream agent text
     useEffect(() => {
         if (!agentTranscriptions?.length) return;
         const current = agentTranscriptions.slice(transcriptStartIndex.current);
@@ -397,7 +348,6 @@ function JocastaSession() {
         if (text) setStreamingAgent(text);
     }, [agentTranscriptions]);
 
-    // State transitions
     useEffect(() => {
         const wasNotSpeaking = prevState.current !== 'speaking';
         const wasSpeaking = prevState.current === 'speaking';
@@ -434,7 +384,6 @@ function JocastaSession() {
         },
     });
 
-    // Auto-scroll
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, interimText, agentState, streamingAgentText]);
@@ -449,10 +398,7 @@ function JocastaSession() {
     }, [textValue, addUserTyped, sendText]);
 
     const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
     };
 
     const onInput = () => {
@@ -465,12 +411,7 @@ function JocastaSession() {
     const isConnected = lkState !== 'disconnected';
 
     const allMessages: ConversationItem[] = streamingAgentText
-        ? [...messages, {
-            role: 'assistant' as const,
-            content: streamingAgentText,
-            timestamp: Date.now(),
-            id: 'streaming-now',
-        }]
+        ? [...messages, { role: 'assistant' as const, content: streamingAgentText, timestamp: Date.now(), id: 'streaming-now' }]
         : messages;
 
     const hasMessages = allMessages.length > 0 || !!interimText;
@@ -479,11 +420,12 @@ function JocastaSession() {
         <div style={{
             position: 'fixed',
             inset: 0,
-            top: '56px', // below navbar
+            top: '56px',
             display: 'flex',
             flexDirection: 'column',
             background: 'var(--bg-void)',
             overflow: 'hidden',
+            transition: 'background 0.35s ease',
         }}>
             {/* Atmospheric backgrounds */}
             <div style={{
@@ -503,14 +445,10 @@ function JocastaSession() {
             }} />
             <div className="noise-overlay" />
 
-            {/* ── Body: sphere + transcript ─────────────────────────────────── */}
-            <div style={{
-                flex: 1,
-                display: 'flex',
-                overflow: 'hidden',
-                minHeight: 0,
-            }}>
-                {/* Left panel: sphere (always visible) */}
+            {/* ── Body ─────────────────────────────────────────────────────── */}
+            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+
+                {/* Left panel: sphere */}
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -527,53 +465,25 @@ function JocastaSession() {
                 }}>
                     <AgentOrb state={agentState} />
 
-                    {/* Session info when no messages yet */}
                     {!hasMessages && (
                         <motion.div
                             initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4, duration: 0.5 }}
-                            style={{
-                                marginTop: '32px',
-                                textAlign: 'center',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '10px',
-                            }}
+                            style={{ marginTop: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}
                         >
-                            <p style={{
-                                fontFamily: 'var(--font-display)',
-                                fontSize: '20px',
-                                fontWeight: 700,
-                                color: 'var(--text-primary)',
-                                letterSpacing: '-0.02em',
-                            }}>
+                            <p style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
                                 Jocasta is ready
                             </p>
-                            <p style={{
-                                fontFamily: 'var(--font-ui)',
-                                fontSize: '13px',
-                                fontWeight: 300,
-                                color: 'var(--text-muted)',
-                                maxWidth: '280px',
-                                lineHeight: 1.6,
-                            }}>
+                            <p style={{ fontFamily: 'var(--font-ui)', fontSize: '13px', fontWeight: 300, color: 'var(--text-muted)', maxWidth: '280px', lineHeight: 1.6 }}>
                                 Speak or type below to begin. Ask about weather, news, calculations, or anything at all.
                             </p>
-                            {/* Mic hint */}
                             <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                padding: '7px 16px',
-                                borderRadius: '100px',
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                padding: '7px 16px', borderRadius: '100px',
                                 border: '1px dashed var(--border-mid)',
-                                color: 'var(--text-ghost)',
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: '11px',
-                                letterSpacing: '0.06em',
-                                marginTop: '4px',
+                                color: 'var(--text-muted)',
+                                fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.06em', marginTop: '4px',
                             }}>
                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                                     <rect x="4" y="1" width="4" height="6" rx="2" stroke="currentColor" strokeWidth="1.2" />
@@ -585,7 +495,7 @@ function JocastaSession() {
                     )}
                 </div>
 
-                {/* Right panel: chat transcript */}
+                {/* Right panel: transcript */}
                 <AnimatePresence>
                     {hasMessages && (
                         <motion.div
@@ -593,14 +503,7 @@ function JocastaSession() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                            style={{
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                overflow: 'hidden',
-                                minWidth: 0,
-                                position: 'relative',
-                            }}
+                            style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, position: 'relative' }}
                         >
                             {/* Transcript header */}
                             <div style={{
@@ -610,8 +513,9 @@ function JocastaSession() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                background: 'rgba(6,6,8,0.4)',
+                                background: 'var(--bg-glass)',
                                 backdropFilter: 'blur(16px)',
+                                transition: 'background 0.35s ease',
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -619,11 +523,8 @@ function JocastaSession() {
                                         <path d="M3 5h7M3 7.5h5" stroke="var(--text-muted)" strokeWidth="1.1" strokeLinecap="round" />
                                     </svg>
                                     <span style={{
-                                        fontFamily: 'var(--font-mono)',
-                                        fontSize: '10px',
-                                        color: 'var(--text-muted)',
-                                        letterSpacing: '0.1em',
-                                        textTransform: 'uppercase',
+                                        fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-muted)',
+                                        letterSpacing: '0.1em', textTransform: 'uppercase',
                                     }}>
                                         TRANSCRIPT — {allMessages.length} {allMessages.length === 1 ? 'MESSAGE' : 'MESSAGES'}
                                     </span>
@@ -632,43 +533,28 @@ function JocastaSession() {
 
                             {/* Messages */}
                             <div style={{
-                                flex: 1,
-                                overflowY: 'auto',
-                                padding: '20px 24px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '10px',
+                                flex: 1, overflowY: 'auto', padding: '20px 24px',
+                                display: 'flex', flexDirection: 'column', gap: '10px',
                             }}>
-                                {allMessages.map(item => (
-                                    <MessageBubble key={item.id} item={item} />
-                                ))}
+                                {allMessages.map(item => <MessageBubble key={item.id} item={item} />)}
 
-                                {/* Interim speech */}
                                 {interimText && (
                                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                                         <div style={{
-                                            maxWidth: '72%',
-                                            padding: '10px 14px',
+                                            maxWidth: '72%', padding: '10px 14px',
                                             borderRadius: 'var(--r-lg) var(--r-lg) 4px var(--r-lg)',
                                             background: 'var(--bubble-user)',
                                             border: '1px dashed var(--border-mid)',
                                             color: 'var(--text-muted)',
-                                            fontSize: '14px',
-                                            fontStyle: 'italic',
-                                            fontFamily: 'var(--font-ui)',
+                                            fontSize: '14px', fontStyle: 'italic', fontFamily: 'var(--font-ui)',
                                         }}>
                                             {interimText}
-                                            <span style={{
-                                                marginLeft: '2px',
-                                                color: 'var(--gold)',
-                                                animation: 'cursor-blink 1s step-end infinite',
-                                            }}>|</span>
+                                            <span style={{ marginLeft: '2px', color: 'var(--gold)', animation: 'cursor-blink 1s step-end infinite' }}>|</span>
                                         </div>
                                     </div>
                                 )}
 
                                 {agentState === 'thinking' && <ThinkingBubble />}
-
                                 <div ref={bottomRef} />
                             </div>
                         </motion.div>
@@ -679,31 +565,25 @@ function JocastaSession() {
             {/* ── Bottom controls ───────────────────────────────────────────── */}
             <div style={{
                 flexShrink: 0,
-                borderTop: '1px solid var(--border-dim)',
-                background: 'rgba(6,6,8,0.9)',
-                backdropFilter: 'blur(24px)',
-                WebkitBackdropFilter: 'blur(24px)',
+                borderTop: '1px solid var(--bar-border)',
+                background: 'var(--bar-bg)',
+                backdropFilter: 'blur(28px)',
+                WebkitBackdropFilter: 'blur(28px)',
                 position: 'relative',
                 zIndex: 20,
+                transition: 'background 0.35s ease, border-color 0.35s ease',
+                boxShadow: '0 -4px 24px rgba(0,0,0,0.06)',
             }}>
                 {/* LiveKit control bar */}
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    padding: '10px 20px 0',
-                }}>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 20px 0' }}>
                     <VoiceAssistantControlBar />
                 </div>
 
                 {/* Text input */}
                 <div style={{
-                    maxWidth: '720px',
-                    margin: '0 auto',
-                    width: '100%',
+                    maxWidth: '720px', margin: '0 auto', width: '100%',
                     padding: '10px 20px 14px',
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    gap: '10px',
+                    display: 'flex', alignItems: 'flex-end', gap: '10px',
                 }}>
                     <textarea
                         ref={textareaRef}
@@ -715,25 +595,18 @@ function JocastaSession() {
                         disabled={!isConnected}
                         rows={1}
                         style={{
-                            flex: 1,
-                            padding: '10px 14px',
-                            borderRadius: '12px',
+                            flex: 1, padding: '10px 14px', borderRadius: '12px',
                             border: '1px solid var(--border-mid)',
                             background: 'var(--bg-raised)',
                             color: 'var(--text-primary)',
-                            fontFamily: 'var(--font-ui)',
-                            fontSize: '14px',
-                            lineHeight: 1.55,
-                            resize: 'none',
-                            outline: 'none',
-                            minHeight: '42px',
-                            maxHeight: '120px',
-                            overflowY: 'auto',
-                            transition: 'border-color 0.2s',
+                            fontFamily: 'var(--font-ui)', fontSize: '14px', lineHeight: 1.55,
+                            resize: 'none', outline: 'none',
+                            minHeight: '42px', maxHeight: '120px', overflowY: 'auto',
+                            transition: 'border-color 0.2s, background 0.3s, color 0.3s',
                         }}
                         onFocus={e => {
                             e.target.style.borderColor = 'rgba(200,146,42,0.5)';
-                            e.target.style.boxShadow = '0 0 0 2px rgba(200,146,42,0.08)';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(200,146,42,0.07)';
                         }}
                         onBlur={e => {
                             e.target.style.borderColor = 'var(--border-mid)';
@@ -745,18 +618,13 @@ function JocastaSession() {
                         disabled={!textValue.trim() || !isConnected}
                         title="Send (Enter)"
                         style={{
-                            width: '42px',
-                            height: '42px',
-                            borderRadius: '12px',
+                            width: '42px', height: '42px', borderRadius: '12px',
                             background: textValue.trim() && isConnected ? 'var(--gold)' : 'var(--bg-glass)',
                             border: `1px solid ${textValue.trim() && isConnected ? 'rgba(200,146,42,0.4)' : 'var(--border-mid)'}`,
                             color: textValue.trim() && isConnected ? '#0c0a06' : 'var(--text-muted)',
                             cursor: textValue.trim() && isConnected ? 'pointer' : 'not-allowed',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            fontSize: '18px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0, fontSize: '18px',
                             transition: 'all 0.2s',
                             boxShadow: textValue.trim() && isConnected ? '0 4px 16px rgba(200,146,42,0.25)' : 'none',
                         }}
@@ -793,65 +661,33 @@ export function VoiceAgent() {
     if (!conn) {
         return (
             <div style={{
-                position: 'fixed',
-                inset: 0,
-                top: '56px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                position: 'fixed', inset: 0, top: '56px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: 'var(--bg-void)',
+                transition: 'background 0.35s ease',
             }}>
-                {/* Atmosphere */}
                 <div style={{
                     position: 'absolute', inset: 0, pointerEvents: 'none',
                     background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(200,146,42,0.04) 0%, transparent 70%)',
                 }} />
-
                 <div style={{
-                    textAlign: 'center',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '28px',
-                    position: 'relative',
-                    zIndex: 1,
+                    textAlign: 'center', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: '28px', position: 'relative', zIndex: 1,
                 }}>
-                    {/* Animated orb preview */}
                     <div style={{
-                        width: '80px',
-                        height: '80px',
-                        borderRadius: '50%',
+                        width: '80px', height: '80px', borderRadius: '50%',
                         background: 'radial-gradient(circle at 35% 35%, var(--gold-bright), var(--gold))',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontFamily: 'var(--font-display)',
-                        fontWeight: 800,
-                        fontSize: '28px',
-                        color: '#0c0a06',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '28px', color: '#0c0a06',
                         boxShadow: '0 0 0 1px rgba(200,146,42,0.3), 0 0 40px rgba(200,146,42,0.2)',
                         animation: 'orb-breathe 3s ease infinite',
-                    }}>
-                        J
-                    </div>
+                    }}>J</div>
 
                     <div>
-                        <h2 style={{
-                            fontFamily: 'var(--font-display)',
-                            fontSize: '22px',
-                            fontWeight: 700,
-                            color: 'var(--text-primary)',
-                            letterSpacing: '-0.02em',
-                            marginBottom: '8px',
-                        }}>
+                        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '8px' }}>
                             Begin Voice Session
                         </h2>
-                        <p style={{
-                            fontFamily: 'var(--font-ui)',
-                            fontSize: '13px',
-                            fontWeight: 300,
-                            color: 'var(--text-secondary)',
-                        }}>
+                        <p style={{ fontFamily: 'var(--font-ui)', fontSize: '13px', fontWeight: 300, color: 'var(--text-secondary)' }}>
                             Microphone access required
                         </p>
                     </div>
@@ -876,21 +712,14 @@ export function VoiceAgent() {
                         onClick={startSession}
                         disabled={loading}
                         style={{
-                            padding: '13px 40px',
-                            borderRadius: '100px',
+                            padding: '13px 40px', borderRadius: '100px',
                             background: loading ? 'var(--bg-raised)' : 'var(--gold)',
                             color: loading ? 'var(--text-muted)' : '#0c0a06',
-                            border: 'none',
-                            cursor: loading ? 'not-allowed' : 'pointer',
-                            fontFamily: 'var(--font-display)',
-                            fontWeight: 700,
-                            fontSize: '15px',
-                            letterSpacing: '-0.01em',
+                            border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
+                            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '15px', letterSpacing: '-0.01em',
                             boxShadow: loading ? 'none' : '0 8px 32px rgba(200,146,42,0.3)',
                             transition: 'all 0.2s',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
+                            display: 'flex', alignItems: 'center', gap: '10px',
                         }}
                     >
                         {loading ? (

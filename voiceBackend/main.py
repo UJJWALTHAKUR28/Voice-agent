@@ -5,10 +5,13 @@ Voice Agent — entry point.
     python main.py start    # production
     python main.py console  # local console mode, no browser needed
 
-FIXES:
-  1. Added text-input DataPacket listener so typed messages actually reach the agent
-  2. Added event publisher that streams transcripts + state changes to frontend
-  3. Wired AgentSession event hooks to publish real-time events over DataPackets
+PERFORMANCE FIX:
+  The MultilingualModel (turn detector) and silero VAD both load heavy ML
+  models from disk on first use. Previously this happened inside the first
+  session, causing a 2-4 minute delay for the first caller.
+
+  Fix: pre_warm() at worker startup so models are hot in memory before
+  any room joins. Subsequent sessions start in <1s.
 """
 
 from __future__ import annotations
@@ -63,19 +66,65 @@ async def _publish_event(room: rtc.Room, event: dict) -> None:
     try:
         payload = json.dumps(event).encode("utf-8")
         await room.local_participant.publish_data(
-            payload=payload,
-            topic="agent-event",
-            reliable=True,
+            payload = payload,
+            topic   = "agent-event",
+            reliable = True,
         )
     except Exception as exc:
         logger.warning("event publish failed: %s", exc)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Pre-warm — load heavy models at worker startup, NOT at first session
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def _prewarm(proc: agents.JobProcess) -> None:
+    """
+    Called once when the worker process starts (before any room joins).
+    
+    Loads the MultilingualModel turn detector and Silero VAD into memory
+    so they are ready instantly when the first session starts.
+    
+    Previously these loaded lazily inside create_session() → first caller
+    waited 2-4 minutes. Now all heavy I/O happens here at startup.
+    """
+    import time
+    t0 = time.monotonic()
+    logger.info("pre-warming inference models...")
+
+    try:
+        # Pre-warm the turn detector (the slow one — ~3min cold load)
+        from livekit.plugins.turn_detector.multilingual import MultilingualModel
+        model = MultilingualModel()
+        # Storing on proc.userdata makes it reusable across sessions
+        proc.userdata["turn_model"] = model
+        logger.info("  ✓ MultilingualModel loaded (%.1fs)", time.monotonic() - t0)
+    except Exception as exc:
+        logger.warning("  ✗ MultilingualModel pre-warm failed: %s", exc)
+
+    try:
+        # Pre-warm Silero VAD (loads ONNX model)
+        from livekit.plugins import silero
+        vad = silero.VAD.load(
+            min_silence_duration    = 0.4,
+            activation_threshold    = 0.5,
+            prefix_padding_duration = 0.3,
+        )
+        proc.userdata["vad"] = vad
+        logger.info("  ✓ Silero VAD loaded (%.1fs)", time.monotonic() - t0)
+    except Exception as exc:
+        logger.warning("  ✗ Silero VAD pre-warm failed: %s", exc)
+
+    logger.info("pre-warm complete — total %.1fs", time.monotonic() - t0)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Agent session
 # ─────────────────────────────────────────────────────────────────────────────
 
-server = AgentServer()
+server = AgentServer(
+    setup_fnc=_prewarm,  # ← runs once at worker startup, not per-session
+)
 
 
 @server.rtc_session(agent_name="voice-agent")
@@ -85,18 +134,22 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
 
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
 
-    room  = ctx.room
-    session = create_session()
+    room    = ctx.room
+
+    # Re-use pre-warmed models from proc.userdata if available
+    # This means create_session() gets them instantly instead of reloading
+    pre_warmed_vad        = getattr(ctx.proc, "userdata", {}).get("vad")
+    pre_warmed_turn_model = getattr(ctx.proc, "userdata", {}).get("turn_model")
+
+    session = create_session(
+        prewarmed_vad        = pre_warmed_vad,
+        prewarmed_turn_model = pre_warmed_turn_model,
+    )
 
     # ── Wire up transcript + state events → frontend ──────────────────────
 
     @session.on("user_input_transcribed")
     def on_user_transcript(ev) -> None:
-        """
-        Fired by livekit-agents for every STT chunk (interim + final).
-        ev.transcript: str
-        ev.is_final:   bool
-        """
         asyncio.ensure_future(
             _publish_event(room, {
                 "event":      "user_input_transcribed",
@@ -107,10 +160,6 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
 
     @session.on("agent_state_changed")
     def on_state_change(ev) -> None:
-        """
-        ev.old_state, ev.new_state: AgentState strings
-        e.g. "idle" → "listening" → "thinking" → "speaking"
-        """
         asyncio.ensure_future(
             _publish_event(room, {
                 "event":     "agent_state_changed",
@@ -121,20 +170,13 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
 
     @session.on("conversation_item_added")
     def on_item_added(ev) -> None:
-        """
-        Fired when a complete message is added to the conversation —
-        both user messages (final transcript) and agent replies.
-        ev.item: ChatMessage with .role and .text_content
-        """
-        item = ev.item
-        role = getattr(item, "role", None)
-        # text_content is the full committed text (not streaming chunks)
+        item    = ev.item
+        role    = getattr(item, "role", None)
         content = getattr(item, "text_content", None) or getattr(item, "content", None)
 
         if not content or not str(content).strip():
             return
 
-        # role is an enum in some versions — normalise to string
         role_str = role.value if hasattr(role, "value") else str(role)
 
         asyncio.ensure_future(
@@ -149,10 +191,6 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
 
     @room.on("data_received")
     def on_data(data_packet: rtc.DataPacket) -> None:
-        """
-        Listen for text-input DataPackets published by the browser (TextInput.tsx).
-        Feeds the text directly into the agent session as a user turn.
-        """
         if data_packet.topic != "text-input":
             return
 
@@ -168,7 +206,6 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
 
         logger.info("text-input received: %r", text)
 
-        # Immediately echo it back so the transcript shows it as committed
         asyncio.ensure_future(
             _publish_event(room, {
                 "event":   "conversation_item_added",
@@ -177,7 +214,6 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
             })
         )
 
-        # Feed into the agent pipeline — same as speaking it
         asyncio.ensure_future(
             session.generate_reply(user_input=text)
         )

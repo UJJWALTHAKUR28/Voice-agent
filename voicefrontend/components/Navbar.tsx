@@ -2,23 +2,21 @@
 
 // components/Navbar.tsx
 // Premium floating navbar — Iron Man aesthetic
-// Dark/light theme toggle · Home · Chat · Settings
-// Glassmorphism, gold accents, status dot
+// Uses central theme utility for consistent theme application + toasts + sounds
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { applyTheme, getTheme, toggleTheme } from '@/utils/theme';
 
 function ThemeIcon({ isDark }: { isDark: boolean }) {
     return isDark ? (
-        // Sun icon for "switch to light"
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
             <circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" strokeWidth="1.3" />
-            <path d="M7.5 1v1.5M7.5 12.5V14M1 7.5h1.5M12.5 7.5H14M3.05 3.05l1.06 1.06M10.89 10.89l1.06 1.06M3.05 11.95l1.06-1.06M10.89 4.11l1.06-1.06"
+            <path d="M7.5 1v1.5M7.5 12.5V14M1 7.5h1.5M12.5 7.5H14M3.05 3.05l1.06 1.06M10.89 10.89l1.06 1.06M3.05 11.95l1.06-.71m7.31-7.31.71-.71"
                 stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
         </svg>
     ) : (
-        // Moon icon for "switch to dark"
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
             <path d="M12.5 9.5A5.5 5.5 0 015.5 2.5a6 6 0 100 10 5.5 5.5 0 007-3z"
                 stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
@@ -62,11 +60,9 @@ export function Navbar() {
 
     useEffect(() => {
         setMounted(true);
-        // Read persisted theme
-        const saved = localStorage.getItem('jocasta-theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const dark = saved ? saved === 'dark' : prefersDark;
+        const dark = getTheme();
         setIsDark(dark);
+        // Apply without sound/toast on mount
         applyTheme(dark);
     }, []);
 
@@ -76,24 +72,22 @@ export function Navbar() {
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    function applyTheme(dark: boolean) {
-        const html = document.documentElement;
-        if (dark) {
-            html.removeAttribute('data-theme');
-            html.classList.remove('light');
-            html.classList.add('dark');
-        } else {
-            html.setAttribute('data-theme', 'light');
-            html.classList.remove('dark');
-            html.classList.add('light');
-        }
-    }
+    // Listen for theme changes from other sources (e.g. ClientToolHandler)
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            const dark = !document.documentElement.hasAttribute('data-theme');
+            setIsDark(dark);
+        });
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-theme', 'class'],
+        });
+        return () => observer.disconnect();
+    }, []);
 
-    function toggleTheme() {
-        const next = !isDark;
+    function handleToggleTheme() {
+        const next = toggleTheme(); // handles sound + toast
         setIsDark(next);
-        applyTheme(next);
-        localStorage.setItem('jocasta-theme', next ? 'dark' : 'light');
     }
 
     if (!mounted) return null;
@@ -118,12 +112,14 @@ export function Navbar() {
                 padding: '0 24px',
                 height: '56px',
                 background: scrolled
-                    ? 'rgba(6,6,8,0.88)'
-                    : 'rgba(6,6,8,0.6)',
+                    ? 'var(--nav-bg)'
+                    : isDark
+                        ? 'rgba(6,6,8,0.6)'
+                        : 'rgba(248,246,241,0.7)',
                 backdropFilter: 'blur(24px)',
                 WebkitBackdropFilter: 'blur(24px)',
-                borderBottom: '1px solid var(--border-dim)',
-                transition: 'background 0.3s ease',
+                borderBottom: '1px solid var(--nav-border)',
+                transition: 'background 0.35s ease, border-color 0.35s ease',
             }}
         >
             {/* Left: Logo */}
@@ -152,6 +148,7 @@ export function Navbar() {
                     fontSize: '14px',
                     letterSpacing: '-0.02em',
                     color: 'var(--text-primary)',
+                    transition: 'color 0.3s ease',
                 }}>
                     Jocasta
                 </span>
@@ -162,8 +159,8 @@ export function Navbar() {
                     gap: '4px',
                     padding: '2px 8px',
                     borderRadius: '100px',
-                    border: '1px solid rgba(45,212,160,0.2)',
-                    background: 'rgba(45,212,160,0.06)',
+                    border: '1px solid rgba(45,212,160,0.25)',
+                    background: 'rgba(45,212,160,0.07)',
                 }}>
                     <span style={{
                         width: '5px',
@@ -194,6 +191,7 @@ export function Navbar() {
                 border: '1px solid var(--border-dim)',
                 background: 'var(--bg-glass)',
                 backdropFilter: 'blur(12px)',
+                transition: 'background 0.3s ease, border-color 0.3s ease',
             }}>
                 {navLinks.map(link => {
                     const isActive = pathname === link.href;
@@ -209,7 +207,7 @@ export function Navbar() {
                                 borderRadius: '8px',
                                 background: isActive ? 'var(--gold-dim)' : 'transparent',
                                 border: isActive ? '1px solid rgba(200,146,42,0.25)' : '1px solid transparent',
-                                color: isActive ? 'var(--gold-bright)' : 'var(--text-secondary)',
+                                color: isActive ? 'var(--gold)' : 'var(--text-secondary)',
                                 textDecoration: 'none',
                                 fontFamily: 'var(--font-mono)',
                                 fontSize: '11px',
@@ -241,7 +239,7 @@ export function Navbar() {
 
             {/* Right: Theme toggle */}
             <button
-                onClick={toggleTheme}
+                onClick={handleToggleTheme}
                 title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
                 style={{
                     display: 'flex',
@@ -260,7 +258,7 @@ export function Navbar() {
                     backdropFilter: 'blur(8px)',
                 }}
                 onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.color = 'var(--gold-bright)';
+                    (e.currentTarget as HTMLElement).style.color = 'var(--gold)';
                     (e.currentTarget as HTMLElement).style.borderColor = 'rgba(200,146,42,0.4)';
                     (e.currentTarget as HTMLElement).style.background = 'var(--gold-dim)';
                 }}

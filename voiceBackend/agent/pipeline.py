@@ -17,15 +17,8 @@ Architecture:
                            deepgram/aura-2            (fallback)
                            cartesia plugin            (last resort — direct key)
 
-  VAD   Silero (local, CPU)
-  Turn  MultilingualModel + adaptive interruption
-
-IMPORTANT — lk_inference.STT/TTS fallback only accepts:
-  - Plain strings:  "deepgram/nova-3", "cartesia/ink-whisper"
-  - FallbackModel TypedDicts: {"model": "deepgram/nova-3"}
-  Plugin instances (deepgram.STT(), cartesia.TTS()) are NOT valid fallback
-  entries and will silently fail at runtime. Use plugin STT/TTS as the
-  final fallback OUTSIDE the inference wrapper via a separate FallbackAdapter.
+  VAD   Silero (local, CPU) — pre-warmed at worker startup
+  Turn  MultilingualModel  — pre-warmed at worker startup
 """
 
 from __future__ import annotations
@@ -74,7 +67,7 @@ def _load_system_prompt() -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Clean log filter — replace giant traceback spam with one-liners
+# Clean log filter
 # ─────────────────────────────────────────────────────────────────────────────
 
 class _CleanLogFilter(logging.Filter):
@@ -108,23 +101,10 @@ logging.getLogger("livekit.plugins").setLevel(logging.WARNING)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STT — LiveKit inference (3-model) + direct plugin last resort
+# STT
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _build_stt() -> STTFallbackAdapter | lk_inference.STT:
-    """
-    Chain:
-      1. lk/deepgram/nova-3       — best accuracy, datacenter-local
-      2. lk/deepgram/flux-general-en  — Deepgram's newer model
-      3. lk/cartesia/ink-whisper  — separate provider
-      4. deepgram plugin direct   — bypasses LiveKit inference entirely,
-                                    uses DEEPGRAM_API_KEY directly as last resort
-
-    NOTE: The fallback= list on lk_inference.STT ONLY accepts plain strings
-    ("model/name") or FallbackModel TypedDicts. Passing a plugin instance
-    (deepgram.STT()) there will silently corrupt the fallback chain.
-    The plugin fallback must go outside via STTFallbackAdapter.
-    """
+def _build_stt() -> STTFallbackAdapter:
     lk_stt = lk_inference.STT(
         model    = "deepgram/nova-3",
         language = "en",
@@ -133,23 +113,15 @@ def _build_stt() -> STTFallbackAdapter | lk_inference.STT:
             "cartesia/ink-whisper",
         ],
     )
-
-    # Direct plugin as absolute last resort — completely bypasses LK inference
     plugin_stt = deepgram.STT(model="nova-3", language="en")
-
     return STTFallbackAdapter(stt=[lk_stt, plugin_stt])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LLM — LiveKit inference primary + Groq plugin fallbacks
+# LLM
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_llm() -> FallbackAdapter:
-    """
-    Tier 1  lk/gpt-4.1-mini       full history, fast, uses LIVEKIT_API_KEY
-    Tier 2  groq/llama-3.3-70b    full history, 128k ctx, free 100k TPD
-    Tier 3  groq/llama-3.1-8b     32k ctx, separate TPD bucket from 70b
-    """
     from config.settings import get_settings
     s = get_settings()
 
@@ -161,29 +133,14 @@ def _build_llm() -> FallbackAdapter:
         "LLM chain: lk/gpt-4.1-mini → groq/%s → groq/llama-3.1-8b",
         s.groq_model,
     )
-
     return FallbackAdapter(llm=[lk_llm, groq_70b, groq_8b], attempt_timeout=6.0)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# TTS — LiveKit inference (3-model) + direct plugin last resort
+# TTS
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _build_tts() -> TTSFallbackAdapter | lk_inference.TTS:
-    """
-    Chain:
-      1. lk/cartesia/sonic-3      — best quality, 24kHz, with custom voice
-      2. lk/cartesia/sonic-turbo  — lower latency, same voice
-      3. lk/deepgram/aura-2       — separate provider (voice ID not applicable)
-      4. cartesia plugin direct   — bypasses LiveKit inference, uses CARTESIA_API_KEY
-
-    Voice ID ec1e269e-9ca0-402f-8a18-58e0e022355a is applied to all
-    Cartesia tiers. deepgram/aura-2 uses its own voice (no Cartesia voice ID).
-
-    For lk_inference.TTS fallback entries, voice is passed via FallbackModel
-    TypedDict: {"model": "...", "voice": "..."}.
-    For the direct cartesia plugin, voice is passed as the voice= param.
-    """
+def _build_tts() -> TTSFallbackAdapter:
     _VOICE_ID = "ec1e269e-9ca0-402f-8a18-58e0e022355a"
 
     lk_tts = lk_inference.TTS(
@@ -191,20 +148,11 @@ def _build_tts() -> TTSFallbackAdapter | lk_inference.TTS:
         voice    = _VOICE_ID,
         language = "en",
         fallback = [
-            # FallbackModel TypedDict — must include voice here too
             {"model": "cartesia/sonic-turbo", "voice": _VOICE_ID},
-            # deepgram has no Cartesia voice — plain string is fine
             "deepgram/aura-2",
         ],
     )
-
-    # Direct plugin fallback — uses voice= kwarg
-    plugin_tts = cartesia.TTS(
-        model    = "sonic-3",
-        voice    = _VOICE_ID,
-        language = "en",
-    )
-
+    plugin_tts = cartesia.TTS(model="sonic-3", voice=_VOICE_ID, language="en")
     return TTSFallbackAdapter(tts=[lk_tts, plugin_tts])
 
 
@@ -223,38 +171,52 @@ class VoiceAssistant(Agent):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Pipeline factory
+# Pipeline factory — accepts pre-warmed models from main.py _prewarm()
 # ─────────────────────────────────────────────────────────────────────────────
 
-def create_session() -> AgentSession:
+def create_session(
+    prewarmed_vad:        Any | None = None,
+    prewarmed_turn_model: Any | None = None,
+) -> AgentSession:
     """
     Build a fully optimised AgentSession.
 
-    Tuning rationale:
-      endpointing dynamic/0.3s    ML turn detector is confident, so min_delay
-                                  can be lower than default 0.5s safely.
+    If pre-warmed models are passed in (from _prewarm() in main.py), they are
+    reused directly. Otherwise they are loaded fresh (slower — first-time only).
 
-      preemptive_tts=True         Both LLM and TTS start speculatively before
-                                  turn is confirmed — shaves 150-300ms latency.
-
-      interruption adaptive       ML-based, far fewer false positives than VAD.
-      false_interruption_timeout  1.5s — resume speaking after background noise.
-
-      aec_warmup_duration 2.0s    Default is 3s. Fine to lower with decent mics.
-      max_tool_steps 5            Richer tool chains than default 3.
+    Pre-warming moves the ~3-minute model load from "first caller waits" to
+    "happens once at worker startup before anyone joins".
     """
-    session = AgentSession(
+
+    # ── VAD ──────────────────────────────────────────────────────────────────
+    if prewarmed_vad is not None:
+        vad = prewarmed_vad
+        logger.info("using pre-warmed VAD")
+    else:
+        logger.info("loading VAD fresh (not pre-warmed)")
         vad = silero.VAD.load(
-            min_silence_duration    = 0.4,   # slightly faster than default 0.55
+            min_silence_duration    = 0.4,
             activation_threshold    = 0.5,
             prefix_padding_duration = 0.3,
-        ),
+        )
+
+    # ── Turn detector ─────────────────────────────────────────────────────────
+    if prewarmed_turn_model is not None:
+        turn_model = prewarmed_turn_model
+        logger.info("using pre-warmed MultilingualModel")
+    else:
+        logger.info("loading MultilingualModel fresh (not pre-warmed — expect delay)")
+        turn_model = MultilingualModel()
+
+    # ── Session ───────────────────────────────────────────────────────────────
+    session = AgentSession(
+        vad = vad,
         stt = _build_stt(),
         llm = _build_llm(),
         tts = _build_tts(),
 
         turn_handling = TurnHandlingOptions(
-            turn_detection = MultilingualModel(),
+            turn_detection = turn_model,
 
             endpointing = EndpointingOptions(
                 mode      = "dynamic",
