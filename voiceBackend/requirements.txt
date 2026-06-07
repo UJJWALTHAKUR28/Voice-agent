@@ -5,6 +5,7 @@
 
 # LiveKit Agent Framework (with all plugins we need)
 livekit-agents[deepgram,cartesia,silero,turn-detector,groq,openai]~=1.5
+livekit-plugins-turn-detector~=1.5
 livekit-api~=1.1
 
 # HTTP client for server tools
