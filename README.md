@@ -204,6 +204,7 @@ source .venv/bin/activate       # Windows: .venv\Scripts\activate
 
 ```bash
 pip install -r requirements.txt
+python -m livekit.agents download-files
 ```
 
 This installs:
