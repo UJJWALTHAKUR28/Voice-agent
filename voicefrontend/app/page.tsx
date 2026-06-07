@@ -1,9 +1,9 @@
 'use client';
 
-// app/page.tsx  —  Jocasta Landing — PREMIUM REWRITE
-// Architecture: fixed hero → scroll-reveal sections → parallax columns → capabilities → CTA
-// JARVIS rings sphere, parallax portrait columns, full about/features content
-// Light-mode: deep navy/indigo accent instead of gold, high contrast
+// app/page.tsx  —  Jocasta Landing — ENHANCED
+// Light theme: glass buttons, refined sage palette, improved CTAs
+// Dark theme: unchanged gold aesthetic
+// Added: glass morphism buttons, enhanced section transitions, richer parallax cards
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue } from 'motion/react';
@@ -23,7 +23,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
     const canvas = canvasRef.current;
     if (!canvas) return;
     const DPR = window.devicePixelRatio || 1;
-    // Add generous padding so halo/ring/glow effects don't get clipped
     const pad = size * 0.25;
     const canvasSize = size + pad * 2;
     canvas.width = canvasSize * DPR;
@@ -36,7 +35,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
     const cx = W / 2, cy = H / 2;
     const R = size * 0.34;
 
-    /* Fibonacci node lattice */
     const N = 200;
     const golden = Math.PI * (3 - Math.sqrt(5));
     const nodes: { x: number; y: number; z: number }[] = [];
@@ -56,7 +54,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
       }
     }
 
-    /* Ring definitions: [rx tilt, ry tilt, rz tilt, radius multiplier, speed, phase] */
     const rings = [
       { rx: 1.2, ry: 0.0, rz: 0.0, rm: 1.22, speed: 0.6, phase: 0 },
       { rx: 0.6, ry: 0.8, rz: 0.0, rm: 1.38, speed: -0.4, phase: 1.0 },
@@ -64,7 +61,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
       { rx: 1.5, ry: 0.5, rz: 0.3, rm: 1.18, speed: -0.8, phase: 0.5 },
     ];
 
-    /* Data blips on rings */
     const blips = rings.map((_, ri) => ({
       t: ri * 0.25,
       speed: 0.8 + ri * 0.3,
@@ -77,7 +73,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
       const isLight = document.documentElement.hasAttribute('data-theme') ||
         document.documentElement.classList.contains('light');
       if (isLight) {
-        // Light mode: deep sage and moss colors to match CSS variables
         return {
           nodeColor: 'rgba(46, 125, 82,',
           edgeMid: 'rgba(46, 125, 82,',
@@ -125,7 +120,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
         return { px: cx + rx * Rb * sc, py: cy + fy * Rb * sc, z: fz, sc };
       }
 
-      /* Halo glow */
       const haloStrength = active ? 0.18 : 0.09;
       const halo = ctx.createRadialGradient(cx, cy, Rb * 0.2, cx, cy, Rb * 1.8);
       halo.addColorStop(0, `${colors.haloColor}${haloStrength})`);
@@ -134,7 +128,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, W, H);
 
-      /* Inner glow sphere */
       const innerGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, Rb * 0.7);
       innerGlow.addColorStop(0, `${colors.haloColor}${active ? 0.12 : 0.07})`);
       innerGlow.addColorStop(1, `${colors.haloColor}0)`);
@@ -143,7 +136,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
       ctx.fillStyle = innerGlow;
       ctx.fill();
 
-      /* Sphere edges */
       for (const [a, b] of edges) {
         const pA = project(nodes[a].x, nodes[a].y, nodes[a].z);
         const pB = project(nodes[b].x, nodes[b].y, nodes[b].z);
@@ -162,7 +154,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
         ctx.stroke();
       }
 
-      /* Sphere nodes */
       for (let i = 0; i < N; i++) {
         const p = project(nodes[i].x, nodes[i].y, nodes[i].z);
         const vis = (p.z + 1) / 2;
@@ -180,20 +171,13 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
         }
       }
 
-      /* JARVIS orbital rings */
       rings.forEach((ring, ri) => {
         const ringAngle = timeRef.current * ring.speed + ring.phase;
         const ringR = Rb * ring.rm;
 
-        /* Draw ellipse for ring (simplified 3D projection) */
         ctx.save();
         ctx.translate(cx, cy);
 
-        /* Tilt matrix */
-        const cosRX = Math.cos(ring.rx), sinRX = Math.sin(ring.rx);
-        const cosRY = Math.cos(ring.ry + angle * 0.3), sinRY = Math.sin(ring.ry + angle * 0.3);
-
-        /* Draw ring as many small arcs around */
         const steps = 120;
         const ringAlpha = active ? 0.75 : 0.65;
         const gapFrac = 0.08;
@@ -202,41 +186,30 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
         let first = true;
         for (let s = 0; s <= steps; s++) {
           const t = (s / steps) * Math.PI * 2;
-          /* Skip gap */
           const modT = ((t / (Math.PI * 2)) + 1) % 1;
           if (modT < gapFrac) continue;
 
-          /* 3D ring point */
           const rx3 = Math.cos(t) * ringR;
           const ry3 = Math.sin(t) * ringR * Math.cos(ring.rx);
           const rz3 = Math.sin(t) * ringR * Math.sin(ring.rx);
 
-          /* Rotate around Y */
           const rxx = rx3 * Math.cos(ring.ry + angle * 0.3) + rz3 * Math.sin(ring.ry + angle * 0.3);
           const ryy = ry3;
           const rzz = -rx3 * Math.sin(ring.ry + angle * 0.3) + rz3 * Math.cos(ring.ry + angle * 0.3);
 
-          /* Perspective */
           const fov = 500;
           const scl = fov / (fov + rzz * 0.4);
           const px = rxx * scl;
           const py = ryy * scl;
-          const depth = (rzz + ringR) / (ringR * 2);
-          const alpha2 = ringAlpha * (0.3 + depth * 0.7);
 
-          if (first) {
-            ctx.moveTo(px, py);
-            first = false;
-          } else {
-            ctx.lineTo(px, py);
-          }
+          if (first) { ctx.moveTo(px, py); first = false; }
+          else { ctx.lineTo(px, py); }
         }
         ctx.strokeStyle = `${colors.ringColor}${ringAlpha * 0.6})`;
         ctx.lineWidth = active ? 1.4 : 0.9;
         ctx.stroke();
         ctx.restore();
 
-        /* Data blip on ring */
         blips[ri].t = (blips[ri].t + blips[ri].speed * 0.004) % 1;
         const bt = blips[ri].t * Math.PI * 2;
         const bx3 = Math.cos(bt) * ringR;
@@ -262,7 +235,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
         }
       });
 
-      /* Pulse rings when active */
       if (active) {
         for (let ring = 0; ring < 4; ring++) {
           const phase = (pulseT * 0.3 + ring * 0.7) % 1;
@@ -276,7 +248,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
         }
       }
 
-      /* Equatorial glow disc */
       const disc = ctx.createRadialGradient(cx, cy, Rb * 0.3, cx, cy, Rb * 1.15);
       disc.addColorStop(0, `${colors.haloColor}${active ? 0.06 : 0.04})`);
       disc.addColorStop(1, `${colors.haloColor}0)`);
@@ -292,7 +263,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
     return () => cancelAnimationFrame(animRef.current);
   }, [size]);
 
-  // Negative margin offsets the extra canvas padding so layout isn't affected
   const pad = size * 0.25;
 
   return (
@@ -308,6 +278,149 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
     />
   );
 }
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* GLASS BUTTON — adaptive light/dark                                           */
+/* ─────────────────────────────────────────────────────────────────────────── */
+function GlassButton({
+  href,
+  children,
+  primary = false,
+  onClick,
+}: {
+  href?: string;
+  children: React.ReactNode;
+  primary?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  const baseStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: primary ? '15px 38px' : '15px 26px',
+    borderRadius: '100px',
+    textDecoration: 'none',
+    fontFamily: 'var(--font-display)',
+    fontWeight: primary ? 700 : 600,
+    fontSize: '14px',
+    letterSpacing: '-0.01em',
+    cursor: 'pointer',
+    border: 'none',
+    outline: 'none',
+    transition: 'all 0.28s cubic-bezier(0.16,1,0.3,1)',
+    position: 'relative' as const,
+    overflow: 'hidden',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+  };
+
+  // Light theme primary — frosted glass with deep sage tint
+  const lightPrimary: React.CSSProperties = {
+    background: hovered
+      ? 'rgba(26, 92, 58, 0.88)'
+      : 'rgba(26, 92, 58, 0.76)',
+    color: '#ffffff',
+    border: '1px solid rgba(26, 92, 58, 0.60)',
+    boxShadow: hovered
+      ? '0 0 0 1px rgba(26,92,58,0.20), 0 16px 48px rgba(26,92,58,0.32), 0 4px 12px rgba(26,92,58,0.18), inset 0 1px 0 rgba(255,255,255,0.22)'
+      : '0 0 0 1px rgba(26,92,58,0.16), 0 8px 32px rgba(26,92,58,0.22), inset 0 1px 0 rgba(255,255,255,0.18)',
+    transform: hovered ? 'translateY(-2px) scale(1.01)' : 'translateY(0) scale(1)',
+  };
+
+  // Light theme secondary — pure frosted glass
+  const lightSecondary: React.CSSProperties = {
+    background: hovered
+      ? 'rgba(255, 255, 255, 0.72)'
+      : 'rgba(255, 255, 255, 0.52)',
+    color: hovered ? '#1a5c3a' : '#354a36',
+    border: '1px solid rgba(255, 255, 255, 0.85)',
+    boxShadow: hovered
+      ? '0 0 0 1px rgba(26,92,58,0.12), 0 12px 36px rgba(26,92,58,0.14), 0 2px 8px rgba(26,92,58,0.08), inset 0 1px 0 rgba(255,255,255,0.95)'
+      : '0 0 0 1px rgba(26,92,58,0.08), 0 4px 16px rgba(26,92,58,0.08), inset 0 1px 0 rgba(255,255,255,0.90)',
+    transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
+  };
+
+  // Dark primary
+  const darkPrimary: React.CSSProperties = {
+    background: hovered ? 'var(--gold-bright)' : 'var(--gold)',
+    color: '#0c0a06',
+    border: '1px solid rgba(232,172,68,0.4)',
+    boxShadow: hovered
+      ? '0 0 0 1px rgba(232,172,68,0.3), 0 14px 44px rgba(200,146,42,0.45), inset 0 1px 0 rgba(255,255,255,0.2)'
+      : '0 0 0 1px rgba(200,146,42,0.2), 0 8px 32px rgba(200,146,42,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+    transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+  };
+
+  // Dark secondary
+  const darkSecondary: React.CSSProperties = {
+    background: hovered ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.03)',
+    color: hovered ? 'var(--text-primary)' : 'var(--text-secondary)',
+    border: hovered ? '1px solid var(--border-strong)' : '1px solid var(--border-mid)',
+    boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)' : 'none',
+    transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
+  };
+
+  const [isLight, setIsLight] = useState(false);
+  useEffect(() => {
+    const check = () => setIsLight(
+      document.documentElement.hasAttribute('data-theme') ||
+      document.documentElement.classList.contains('light')
+    );
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+    return () => obs.disconnect();
+  }, []);
+
+  const themeStyle = isLight
+    ? (primary ? lightPrimary : lightSecondary)
+    : (primary ? darkPrimary : darkSecondary);
+
+  const combined = { ...baseStyle, ...themeStyle };
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        style={combined}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {/* Glass sheen — only in light secondary */}
+        {isLight && !primary && (
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, transparent 100%)',
+            pointerEvents: 'none', borderRadius: '100px 100px 0 0',
+          }} />
+        )}
+        {children}
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      style={combined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onClick}
+      href="#"
+    >
+      {isLight && !primary && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, transparent 100%)',
+          pointerEvents: 'none', borderRadius: '100px 100px 0 0',
+        }} />
+      )}
+      {children}
+    </a>
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────────────────── */
 /* SCAN LINE                                                                    */
 /* ─────────────────────────────────────────────────────────────────────────── */
@@ -325,17 +438,8 @@ function ScanLine() {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────── */
-/* PARALLAX COLUMN — single column of portrait images scrolling                 */
+/* PARALLAX COLUMN                                                               */
 /* ─────────────────────────────────────────────────────────────────────────── */
-const PLACEHOLDER_COLS = [
-  // Col A — science / neural / circuits
-  ['#0a0a10', '#0e0e18', '#0c0c14', '#101018', '#0d0d15'],
-  // Col B — deep space / cosmic
-  ['#060610', '#0a0a16', '#080812', '#0c0c18', '#070714'],
-  // Col C — abstract data / mesh
-  ['#0b0b12', '#0f0f1a', '#0d0d16', '#11111c', '#0e0e18'],
-];
-
 function ParallaxColumn({
   index,
   scrollY,
@@ -381,6 +485,22 @@ function ParallaxColumn({
           'rgba(45,212,160,0.15)',
           'rgba(200,146,42,0.14)',
         ];
+        // Light mode card colours
+        const lightBg = [
+          'rgba(26,92,58,0.05)',
+          'rgba(46,125,82,0.04)',
+          'rgba(107,124,60,0.05)',
+          'rgba(82,168,113,0.04)',
+          'rgba(26,92,58,0.04)',
+        ];
+        const lightBorder = [
+          'rgba(26,92,58,0.14)',
+          'rgba(46,125,82,0.12)',
+          'rgba(107,124,60,0.14)',
+          'rgba(82,168,113,0.12)',
+          'rgba(26,92,58,0.10)',
+        ];
+
         return (
           <motion.div
             key={i}
@@ -405,23 +525,18 @@ function ParallaxColumn({
             }}
             whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
           >
-            {/* Background geometric decoration */}
             <div style={{
               position: 'absolute',
-              right: '-20px',
-              bottom: '-20px',
-              width: '100px',
-              height: '100px',
+              right: '-20px', bottom: '-20px',
+              width: '100px', height: '100px',
               borderRadius: '50%',
               border: `1px solid ${borderHues[(i + index) % 5]}`,
               opacity: 0.4,
             }} />
             <div style={{
               position: 'absolute',
-              right: '10px',
-              bottom: '10px',
-              width: '60px',
-              height: '60px',
+              right: '10px', bottom: '10px',
+              width: '60px', height: '60px',
               borderRadius: '50%',
               border: `1px solid ${borderHues[(i + index) % 5]}`,
               opacity: 0.25,
@@ -437,18 +552,13 @@ function ParallaxColumn({
             <div>
               <p style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: '14px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.01em',
-                marginBottom: '6px',
+                fontSize: '14px', fontWeight: 700,
+                color: 'var(--text-primary)', letterSpacing: '-0.01em', marginBottom: '6px',
               }}>{card.label}</p>
               <p style={{
                 fontFamily: 'var(--font-ui)',
-                fontSize: '12px',
-                fontWeight: 300,
-                color: 'var(--text-secondary)',
-                lineHeight: 1.55,
+                fontSize: '12px', fontWeight: 300,
+                color: 'var(--text-secondary)', lineHeight: 1.55,
               }}>{card.desc}</p>
             </div>
           </motion.div>
@@ -461,18 +571,8 @@ function ParallaxColumn({
 /* ─────────────────────────────────────────────────────────────────────────── */
 /* FEATURE ROW ITEM                                                             */
 /* ─────────────────────────────────────────────────────────────────────────── */
-function FeatureRow({
-  index,
-  icon,
-  title,
-  body,
-  tag,
-}: {
-  index: number;
-  icon: string;
-  title: string;
-  body: string;
-  tag: string;
+function FeatureRow({ index, icon, title, body, tag }: {
+  index: number; icon: string; title: string; body: string; tag: string;
 }) {
   return (
     <motion.div
@@ -481,65 +581,33 @@ function FeatureRow({
       viewport={{ once: true, amount: 0.4 }}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
       style={{
-        display: 'flex',
-        gap: '24px',
-        alignItems: 'flex-start',
-        padding: '28px 32px',
-        borderRadius: '20px',
-        background: 'var(--bg-glass)',
-        border: '1px solid var(--border-dim)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        cursor: 'default',
-        position: 'relative',
-        overflow: 'hidden',
+        display: 'flex', gap: '24px', alignItems: 'flex-start',
+        padding: '28px 32px', borderRadius: '20px',
+        background: 'var(--bg-glass)', border: '1px solid var(--border-dim)',
+        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+        cursor: 'default', position: 'relative', overflow: 'hidden',
       }}
-      whileHover={{
-        background: 'var(--bg-glass-hover)',
-        borderColor: 'var(--border-mid)',
-        transition: { duration: 0.2 },
-      }}
+      whileHover={{ background: 'var(--bg-glass-hover)', borderColor: 'var(--border-mid)', transition: { duration: 0.2 } }}
     >
-      {/* Corner tag */}
       <div style={{
-        position: 'absolute',
-        top: '16px',
-        right: '20px',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '10px',
-        color: 'var(--text-muted)',
-        letterSpacing: '0.1em',
+        position: 'absolute', top: '16px', right: '20px',
+        fontFamily: 'var(--font-mono)', fontSize: '10px',
+        color: 'var(--text-muted)', letterSpacing: '0.1em',
       }}>{tag}</div>
-
-      {/* Icon box */}
       <div style={{
-        width: '48px',
-        height: '48px',
-        borderRadius: '14px',
-        background: 'var(--gold-dim)',
-        border: '1px solid var(--gold-glow)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '22px',
-        flexShrink: 0,
+        width: '48px', height: '48px', borderRadius: '14px',
+        background: 'var(--gold-dim)', border: '1px solid var(--gold-glow)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '22px', flexShrink: 0,
       }}>{icon}</div>
-
       <div>
         <h3 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '17px',
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          letterSpacing: '-0.02em',
-          marginBottom: '8px',
+          fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700,
+          color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '8px',
         }}>{title}</h3>
         <p style={{
-          fontFamily: 'var(--font-ui)',
-          fontSize: '14px',
-          fontWeight: 300,
-          color: 'var(--text-secondary)',
-          lineHeight: 1.7,
+          fontFamily: 'var(--font-ui)', fontSize: '14px', fontWeight: 300,
+          color: 'var(--text-secondary)', lineHeight: 1.7,
         }}>{body}</p>
       </div>
     </motion.div>
@@ -559,11 +627,8 @@ function StatTicker() {
   ];
   return (
     <div style={{
-      display: 'flex',
-      gap: '1px',
-      overflow: 'hidden',
-      borderRadius: '16px',
-      border: '1px solid var(--border-dim)',
+      display: 'flex', gap: '1px', overflow: 'hidden',
+      borderRadius: '16px', border: '1px solid var(--border-dim)',
       background: 'var(--border-dim)',
     }}>
       {stats.map((s, i) => (
@@ -573,26 +638,15 @@ function StatTicker() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: i * 0.08, duration: 0.5 }}
-          style={{
-            flex: 1,
-            padding: '20px 16px',
-            background: 'var(--bg-surface)',
-            textAlign: 'center',
-          }}
+          style={{ flex: 1, padding: '20px 16px', background: 'var(--bg-surface)', textAlign: 'center' }}
         >
           <div style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '20px',
-            fontWeight: 800,
-            color: 'var(--gold)',
-            letterSpacing: '-0.02em',
-            marginBottom: '4px',
+            fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800,
+            color: 'var(--gold)', letterSpacing: '-0.02em', marginBottom: '4px',
           }}>{s.value}</div>
           <div style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '10px',
-            color: 'var(--text-muted)',
-            letterSpacing: '0.06em',
+            fontFamily: 'var(--font-mono)', fontSize: '10px',
+            color: 'var(--text-muted)', letterSpacing: '0.06em',
           }}>{s.label.toUpperCase()}</div>
         </motion.div>
       ))}
@@ -604,6 +658,18 @@ function StatTicker() {
 /* CAPABILITY CHIP                                                              */
 /* ─────────────────────────────────────────────────────────────────────────── */
 function Chip({ label, delay }: { label: string; delay: number }) {
+  const [isLight, setIsLight] = useState(false);
+  useEffect(() => {
+    const check = () => setIsLight(
+      document.documentElement.hasAttribute('data-theme') ||
+      document.documentElement.classList.contains('light')
+    );
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10, scale: 0.9 }}
@@ -611,16 +677,18 @@ function Chip({ label, delay }: { label: string; delay: number }) {
       transition={{ delay, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: '7px',
-        padding: '6px 14px',
-        borderRadius: '100px',
-        border: '1px solid var(--border-mid)',
-        background: 'var(--bg-glass)',
-        fontSize: '12px',
-        fontFamily: 'var(--font-mono)',
-        color: 'var(--text-secondary)',
+        padding: '6px 14px', borderRadius: '100px',
+        border: isLight ? '1px solid rgba(255,255,255,0.75)' : '1px solid var(--border-mid)',
+        background: isLight
+          ? 'rgba(255,255,255,0.55)'
+          : 'var(--bg-glass)',
+        fontSize: '12px', fontFamily: 'var(--font-mono)',
+        color: isLight ? '#354a36' : 'var(--text-secondary)',
         letterSpacing: '0.04em',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: isLight
+          ? '0 1px 4px rgba(15,40,20,0.06), inset 0 1px 0 rgba(255,255,255,0.85)'
+          : 'none',
       }}
     >
       <span style={{
@@ -647,32 +715,22 @@ function SectionHeading({ tag, title, sub }: { tag: string; title: string; sub: 
     >
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: '8px',
-        padding: '5px 14px',
-        border: '1px solid var(--border-dim)',
-        borderRadius: '100px',
-        marginBottom: '20px',
+        padding: '5px 14px', border: '1px solid var(--border-dim)',
+        borderRadius: '100px', marginBottom: '20px',
       }}>
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '11px',
-          color: 'var(--gold)', letterSpacing: '0.12em',
-          textTransform: 'uppercase',
+          color: 'var(--gold)', letterSpacing: '0.12em', textTransform: 'uppercase',
         }}>{tag}</span>
       </div>
       <h2 style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 'clamp(28px, 4vw, 44px)',
-        fontWeight: 800,
-        letterSpacing: '-0.03em',
-        lineHeight: 1.05,
-        color: 'var(--text-primary)',
-        marginBottom: '16px',
+        fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)',
+        fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05,
+        color: 'var(--text-primary)', marginBottom: '16px',
       }}>{title}</h2>
       <p style={{
-        fontFamily: 'var(--font-ui)',
-        fontSize: '15px',
-        fontWeight: 300,
-        color: 'var(--text-secondary)',
-        lineHeight: 1.75,
+        fontFamily: 'var(--font-ui)', fontSize: '15px', fontWeight: 300,
+        color: 'var(--text-secondary)', lineHeight: 1.75,
       }}>{sub}</p>
     </motion.div>
   );
@@ -691,7 +749,6 @@ export default function LandingPage() {
     const t = setTimeout(() => setReady(true), 80);
     return () => clearTimeout(t);
   }, []);
-
 
   const capabilities = [
     'Deepgram Nova-3', 'Cartesia Sonic-3', 'GPT-4.1 Mini',
@@ -741,16 +798,13 @@ export default function LandingPage() {
     <div
       ref={containerRef}
       style={{
-        height: '100vh',
-        overflowY: 'auto',
-        overflowX: 'hidden',
+        height: '100vh', overflowY: 'auto', overflowX: 'hidden',
         scrollBehavior: 'smooth',
-        background: 'var(--bg-void)',
-        color: 'var(--text-primary)',
-        paddingTop: '56px', // ← CRITICAL: account for fixed navbar
+        background: 'var(--bg-void)', color: 'var(--text-primary)',
+        paddingTop: '56px',
       }}
     >
-      {/* ── Atmospheric layers (fixed) ─────────────────────────────────────── */}
+      {/* ── Atmospheric layers ─────────────────────────────────── */}
       <div style={{
         position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
         background: `
@@ -760,22 +814,29 @@ export default function LandingPage() {
         `,
       }} />
 
+      {/* Light mode atmospheric override */}
+      <style>{`
+        [data-theme="light"] #landing-atmos, html.light #landing-atmos {
+          background:
+            radial-gradient(ellipse 70% 60% at 50% 40%, rgba(26,92,58,0.07) 0%, transparent 65%),
+            radial-gradient(ellipse 45% 40% at 10% 80%, rgba(107,124,60,0.04) 0%, transparent 60%),
+            radial-gradient(ellipse 50% 45% at 90% 15%, rgba(82,168,113,0.05) 0%, transparent 60%)
+            !important;
+        }
+        /* Light mode glass chip override — done in component above */
+      `}</style>
+
       {/* Grid */}
       <div style={{
         position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.022,
-        backgroundImage: `
-          linear-gradient(var(--border-mid) 1px, transparent 1px),
-          linear-gradient(90deg, var(--border-mid) 1px, transparent 1px)
-        `,
+        backgroundImage: `linear-gradient(var(--border-mid) 1px, transparent 1px), linear-gradient(90deg, var(--border-mid) 1px, transparent 1px)`,
         backgroundSize: '60px 60px',
       }} />
 
       <ScanLine />
       <div className="noise-overlay" />
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* HERO SECTION                                                         */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ════════════════════════════════════════════ HERO ═══ */}
       <motion.section
         initial={{ opacity: 0 }}
         animate={{ opacity: ready ? 1 : 0 }}
@@ -783,16 +844,11 @@ export default function LandingPage() {
       >
         <div style={{
           minHeight: 'calc(100vh - 56px)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
           padding: '60px 24px 80px',
-          position: 'relative',
-          zIndex: 1,
-          textAlign: 'center',
+          position: 'relative', zIndex: 1, textAlign: 'center',
         }}>
-
 
           {/* JARVIS Sphere */}
           <motion.div
@@ -802,23 +858,15 @@ export default function LandingPage() {
             onHoverStart={() => setHovered(true)}
             onHoverEnd={() => setHovered(false)}
             style={{
-              marginBottom: '40px',
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              marginBottom: '40px', position: 'relative',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               overflow: 'visible',
             }}
           >
-            {/* Atmospheric glow behind sphere */}
             <div style={{
-              position: 'absolute',
-              width: '560px',
-              height: '560px',
-              borderRadius: '50%',
+              position: 'absolute', width: '560px', height: '560px', borderRadius: '50%',
               background: 'radial-gradient(circle at 50% 50%, rgba(200,146,42,0.12) 0%, rgba(200,146,42,0.04) 40%, transparent 70%)',
-              filter: 'blur(40px)',
-              pointerEvents: 'none',
+              filter: 'blur(40px)', pointerEvents: 'none',
               animation: 'orb-breathe 6s ease-in-out infinite',
             }} />
             <JARVISSphere isActive={hovered} size={420} />
@@ -830,13 +878,9 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(52px, 8vw, 96px)',
-              fontWeight: 800,
-              letterSpacing: '-0.05em',
-              lineHeight: 0.92,
-              color: 'var(--text-primary)',
-              marginBottom: '20px',
+              fontFamily: 'var(--font-display)', fontSize: 'clamp(52px, 8vw, 96px)',
+              fontWeight: 800, letterSpacing: '-0.05em', lineHeight: 0.92,
+              color: 'var(--text-primary)', marginBottom: '20px',
             }}
           >
             Jocasta
@@ -847,107 +891,50 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.45, duration: 0.6 }}
             style={{
-              fontFamily: 'var(--font-ui)',
-              fontSize: '16px',
-              fontWeight: 300,
-              color: 'var(--text-secondary)',
-              maxWidth: '440px',
-              lineHeight: 1.75,
-              marginBottom: '36px',
-              letterSpacing: '0.01em',
+              fontFamily: 'var(--font-ui)', fontSize: '16px', fontWeight: 300,
+              color: 'var(--text-secondary)', maxWidth: '440px', lineHeight: 1.75,
+              marginBottom: '36px', letterSpacing: '0.01em',
             }}
           >
             Advanced neural voice intelligence. Speak naturally,
             think together, act with precision.
           </motion.p>
 
-          {/* Capabilities */}
+          {/* Capabilities — glass chips */}
           <div style={{
             display: 'flex', flexWrap: 'wrap', gap: '8px',
-            justifyContent: 'center', marginBottom: '52px',
-            maxWidth: '500px',
+            justifyContent: 'center', marginBottom: '52px', maxWidth: '500px',
           }}>
             {capabilities.map((cap, i) => (
               <Chip key={cap} label={cap} delay={0.52 + i * 0.06} />
             ))}
           </div>
 
-          {/* CTA */}
+          {/* CTA — glass buttons */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9, duration: 0.5 }}
             style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}
           >
-            <Link
-              href="/chat"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '12px',
-                padding: '16px 40px',
-                borderRadius: '100px',
-                background: 'var(--gold)',
-                color: '#0c0a06',
-                fontFamily: 'var(--font-display)',
-                fontWeight: 700, fontSize: '15px', letterSpacing: '-0.01em',
-                textDecoration: 'none',
-                border: '1px solid rgba(232,172,68,0.4)',
-                boxShadow: '0 0 0 1px rgba(200,146,42,0.2), 0 8px 32px rgba(200,146,42,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
-                transition: 'all 0.25s ease',
-              }}
-              onMouseEnter={e => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = 'var(--gold-bright)';
-                el.style.transform = 'translateY(-2px)';
-                el.style.boxShadow = '0 0 0 1px rgba(232,172,68,0.3), 0 14px 44px rgba(200,146,42,0.45), inset 0 1px 0 rgba(255,255,255,0.2)';
-              }}
-              onMouseLeave={e => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.background = 'var(--gold)';
-                el.style.transform = 'translateY(0)';
-                el.style.boxShadow = '0 0 0 1px rgba(200,146,42,0.2), 0 8px 32px rgba(200,146,42,0.35), inset 0 1px 0 rgba(255,255,255,0.15)';
-              }}
-            >
+            <GlassButton href="/chat" primary>
               Initialise Interface
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </Link>
+            </GlassButton>
 
-            <a
-              href="#about"
-              onClick={e => {
-                e.preventDefault();
-                document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '8px',
-                padding: '16px 28px',
-                borderRadius: '100px',
-                background: 'transparent',
-                color: 'var(--text-secondary)',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 400, fontSize: '12px', letterSpacing: '0.06em',
-                textDecoration: 'none',
-                border: '1px solid var(--border-mid)',
-                transition: 'all 0.2s ease',
-                textTransform: 'uppercase',
-              }}
-              onMouseEnter={e => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.color = 'var(--text-primary)';
-                el.style.borderColor = 'var(--border-strong)';
-              }}
-              onMouseLeave={e => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.color = 'var(--text-secondary)';
-                el.style.borderColor = 'var(--border-mid)';
-              }}
-            >
-              Learn more
+            <GlassButton onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
+            }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>
+                Learn more
+              </span>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M7 2v10M2 7l5 5 5-5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </a>
+            </GlassButton>
           </motion.div>
 
           {/* Scroll hint */}
@@ -956,8 +943,7 @@ export default function LandingPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2, duration: 0.5 }}
             style={{
-              marginTop: '28px',
-              fontFamily: 'var(--font-mono)', fontSize: '11px',
+              marginTop: '28px', fontFamily: 'var(--font-mono)', fontSize: '11px',
               color: 'var(--text-muted)', letterSpacing: '0.06em',
             }}
           >
@@ -966,27 +952,17 @@ export default function LandingPage() {
         </div>
       </motion.section>
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* STATS TICKER                                                          */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ════════════════════════════════════════════ STATS ══ */}
       <section style={{ padding: '0 32px 80px', maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
         <StatTicker />
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* ABOUT SECTION                                                         */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ════════════════════════════════════════════ ABOUT ══ */}
       <section
         id="about"
         style={{ padding: '80px 32px', maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 2 }}
       >
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '64px',
-          alignItems: 'center',
-        }}>
-          {/* Left: small sphere + label */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '64px', alignItems: 'center' }}>
           <motion.div
             initial={{ opacity: 0, x: -40 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -996,7 +972,6 @@ export default function LandingPage() {
           >
             <div style={{ position: 'relative', overflow: 'visible' }}>
               <JARVISSphere isActive={true} size={280} />
-              {/* Ring labels */}
               {['DEEPGRAM', 'GPT-4.1', 'CARTESIA', 'VAD'].map((label, i) => (
                 <motion.div
                   key={label}
@@ -1006,10 +981,8 @@ export default function LandingPage() {
                   transition={{ delay: 0.3 + i * 0.1 }}
                   style={{
                     position: 'absolute',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '10px',
-                    color: 'var(--gold)',
-                    letterSpacing: '0.1em',
+                    fontFamily: 'var(--font-mono)', fontSize: '10px',
+                    color: 'var(--gold)', letterSpacing: '0.1em',
                     ...([
                       { top: '10px', left: '50%', transform: 'translateX(-50%)' },
                       { right: '-8px', top: '50%', transform: 'translateY(-50%)' },
@@ -1022,7 +995,6 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Right: text */}
           <motion.div
             initial={{ opacity: 0, x: 40 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -1031,10 +1003,8 @@ export default function LandingPage() {
           >
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '8px',
-              padding: '4px 12px',
-              border: '1px solid var(--border-dim)',
-              borderRadius: '100px',
-              marginBottom: '20px',
+              padding: '4px 12px', border: '1px solid var(--border-dim)',
+              borderRadius: '100px', marginBottom: '20px',
             }}>
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: '10px',
@@ -1043,8 +1013,7 @@ export default function LandingPage() {
             </div>
 
             <h2 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(28px, 3.5vw, 40px)',
+              fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 3.5vw, 40px)',
               fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05,
               color: 'var(--text-primary)', marginBottom: '20px',
             }}>
@@ -1069,11 +1038,9 @@ export default function LandingPage() {
               Unlike push-to-talk systems, Jocasta maintains an always-on audio session.
               Silero VAD detects speech automatically, Deepgram transcribes in real-time,
               GPT-4.1 Mini reasons and calls tools (weather, news, math), and Cartesia
-              streams synthesised audio back — all while a data channel pushes live
-              transcripts and state events to the Next.js frontend.
+              streams synthesised audio back.
             </p>
 
-            {/* Pipeline steps */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '28px' }}>
               {[
                 { step: '01', label: 'LiveKit WebRTC capture', color: 'var(--c-listen)' },
@@ -1084,8 +1051,7 @@ export default function LandingPage() {
                 <div key={s.step} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <span style={{
                     fontFamily: 'var(--font-mono)', fontSize: '10px',
-                    color: s.color, letterSpacing: '0.08em', flexShrink: 0,
-                    width: '24px',
+                    color: s.color, letterSpacing: '0.08em', flexShrink: 0, width: '24px',
                   }}>{s.step}</span>
                   <div style={{ flex: 1, height: '1px', background: 'var(--border-dim)' }} />
                   <span style={{
@@ -1099,84 +1065,47 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* PARALLAX SCROLL — 3-COLUMN PORTRAIT CARDS                            */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      <section style={{
-        padding: '80px 32px 100px',
-        overflow: 'hidden',
-        position: 'relative',
-        zIndex: 2,
-      }}>
+      {/* ════════════════════════════════════════ PARALLAX ═══ */}
+      <section style={{ padding: '80px 32px 100px', overflow: 'hidden', position: 'relative', zIndex: 2 }}>
         <SectionHeading
           tag="PIPELINE"
           title="Five models. Three fallback layers."
           sub="Every provider in the pipeline has automatic fallbacks — if Deepgram drops, Flux takes over. If GPT-4.1 Mini rate-limits, Groq LLaMA activates. Zero downtime by design."
         />
 
-        {/* The three parallax columns */}
         <div style={{
-          display: 'flex',
-          gap: '20px',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          maxWidth: '920px',
-          margin: '0 auto',
-          height: '640px', // fixed viewport for parallax effect
-          overflow: 'hidden',
-          borderRadius: '24px',
-          position: 'relative',
+          display: 'flex', gap: '20px', justifyContent: 'center', alignItems: 'flex-start',
+          maxWidth: '920px', margin: '0 auto',
+          height: '640px', overflow: 'hidden', borderRadius: '24px', position: 'relative',
         }}>
-          {/* Fade masks top + bottom */}
           <div style={{
             position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none',
-            background: `
-              linear-gradient(to bottom, var(--bg-void) 0%, transparent 18%, transparent 82%, var(--bg-void) 100%)
-            `,
+            background: `linear-gradient(to bottom, var(--bg-void) 0%, transparent 18%, transparent 82%, var(--bg-void) 100%)`,
           }} />
-
           {[0, 1, 2].map(i => (
             <ParallaxColumn key={i} index={i} scrollY={scrollY} />
           ))}
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* FEATURES GRID                                                         */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      <section style={{
-        padding: '80px 32px 100px',
-        maxWidth: '1100px', margin: '0 auto',
-        position: 'relative', zIndex: 2,
-      }}>
+      {/* ════════════════════════════════════════ FEATURES ═══ */}
+      <section style={{ padding: '80px 32px 100px', maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
         <SectionHeading
           tag="ARCHITECTURE"
           title="Production pipeline. Every layer redundant."
           sub="Built on LiveKit Agents, Deepgram, Cartesia, GPT-4.1 Mini, and Groq — with pre-warmed ML models and multi-provider fallback at every stage."
         />
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
-          gap: '12px',
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '12px' }}>
           {features.map((f, i) => (
             <FeatureRow key={i} index={i} {...f} />
           ))}
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* FINAL CTA SECTION                                                     */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      <section style={{
-        padding: '80px 32px 120px',
-        position: 'relative', zIndex: 2, textAlign: 'center',
-      }}>
-        {/* Atmospheric glow for CTA */}
+      {/* ══════════════════════════════════════════ FINAL CTA ═ */}
+      <section style={{ padding: '80px 32px 120px', position: 'relative', zIndex: 2, textAlign: 'center' }}>
         <div style={{
-          position: 'absolute', left: '50%', top: '50%',
-          transform: 'translate(-50%, -50%)',
+          position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
           width: '600px', height: '400px',
           background: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(200,146,42,0.07) 0%, transparent 70%)',
           pointerEvents: 'none',
@@ -1189,26 +1118,19 @@ export default function LandingPage() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           style={{ position: 'relative' }}
         >
-          {/* Large sphere for CTA */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px', position: 'relative', overflow: 'visible' }}>
             <div style={{
-              position: 'absolute',
-              width: '340px',
-              height: '340px',
-              borderRadius: '50%',
+              position: 'absolute', width: '340px', height: '340px', borderRadius: '50%',
               background: 'radial-gradient(circle, rgba(200,146,42,0.10) 0%, transparent 65%)',
-              filter: 'blur(30px)',
-              pointerEvents: 'none',
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
+              filter: 'blur(30px)', pointerEvents: 'none',
+              top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
               animation: 'orb-breathe 6s ease-in-out infinite',
             }} />
             <JARVISSphere isActive={true} size={200} />
           </div>
 
           <h2 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(36px, 6vw, 72px)',
+            fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 6vw, 72px)',
             fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 0.95,
             color: 'var(--text-primary)', marginBottom: '20px',
           }}>
@@ -1222,42 +1144,19 @@ export default function LandingPage() {
             One click to connect. No setup, no account. Just speak.
           </p>
 
-          <Link
-            href="/chat"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: '12px',
-              padding: '18px 52px',
-              borderRadius: '100px',
-              background: 'var(--gold)',
-              color: '#0c0a06',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 700, fontSize: '17px', letterSpacing: '-0.01em',
-              textDecoration: 'none',
-              boxShadow: '0 0 0 1px rgba(200,146,42,0.25), 0 12px 48px rgba(200,146,42,0.4)',
-              transition: 'all 0.25s ease',
-            }}
-            onMouseEnter={e => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.transform = 'translateY(-3px)';
-              el.style.boxShadow = '0 0 0 1px rgba(232,172,68,0.3), 0 18px 60px rgba(200,146,42,0.5)';
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLElement;
-              el.style.transform = 'translateY(0)';
-              el.style.boxShadow = '0 0 0 1px rgba(200,146,42,0.25), 0 12px 48px rgba(200,146,42,0.4)';
-            }}
-          >
-            Begin Voice Session
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <rect x="7" y="2" width="4" height="8" rx="2" fill="currentColor" />
-              <path d="M4 9a5 5 0 0010 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <path d="M9 14v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-          </Link>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <GlassButton href="/chat" primary>
+              Begin Voice Session
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <rect x="7" y="2" width="4" height="8" rx="2" fill="currentColor" />
+                <path d="M4 9a5 5 0 0010 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                <path d="M9 14v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            </GlassButton>
+          </div>
 
           <p style={{
-            marginTop: '20px',
-            fontFamily: 'var(--font-mono)', fontSize: '11px',
+            marginTop: '20px', fontFamily: 'var(--font-mono)', fontSize: '11px',
             color: 'var(--text-muted)', letterSpacing: '0.06em',
           }}>
             ENCRYPTED · EPHEMERAL · PRIVACY-FIRST
@@ -1265,18 +1164,11 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* FOOTER                                                                */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════ FOOTER ════ */}
       <footer style={{
-        borderTop: '1px solid var(--border-dim)',
-        padding: '32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'relative', zIndex: 2,
-        flexWrap: 'wrap',
-        gap: '16px',
+        borderTop: '1px solid var(--border-dim)', padding: '32px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        position: 'relative', zIndex: 2, flexWrap: 'wrap', gap: '16px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{

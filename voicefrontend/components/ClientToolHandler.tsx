@@ -802,7 +802,7 @@ export function CardOverlay() {
             position: 'fixed', bottom: '20px', right: '20px',
             zIndex: 500, width: '316px', maxWidth: 'calc(100vw - 40px)',
             display: 'flex', flexDirection: 'column', gap: '16px',
-            pointerEvents: 'none' // allow clicking through gaps
+            pointerEvents: 'none'
         }}>
             <style>{`
                 @keyframes progress-shrink {
@@ -863,22 +863,17 @@ export function ClientToolHandler({ onSystemMessage, onCardAction }: {
             }
 
             case 'weather_card': {
+                // No system message or toast — card appears inline in chat only
                 const w = data as unknown as WeatherData;
-                const emoji = w.weather_emoji || '🌡';
-                onSystemMessage?.(`${emoji} ${w.city} — ${Math.round(w.temperature_c)}°C, ${w.description}`);
                 playSound('card_appear');
-                const pushCard = (window as unknown as { __jocastaPushCard?: (c: ActiveCard) => void }).__jocastaPushCard;
-                pushCard?.({ type: 'weather', data: w, id: `weather-${Date.now()}-${Math.random()}` });
                 onCardAction?.('weather', w);
                 break;
             }
 
             case 'calculator_card': {
+                // No system message or toast — card appears inline in chat only
                 const c = data as unknown as CalcData;
-                onSystemMessage?.(`🧮 ${c.expression} = ${c.formatted}`);
                 playSound('card_appear');
-                const pushCard = (window as unknown as { __jocastaPushCard?: (c: ActiveCard) => void }).__jocastaPushCard;
-                pushCard?.({ type: 'calculator', data: c, id: `calc-${Date.now()}-${Math.random()}` });
                 onCardAction?.('calculator', c);
                 break;
             }
