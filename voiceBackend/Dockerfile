@@ -9,7 +9,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN python -m livekit.agents download-files
-RUN python -c "from livekit.plugins.turn_detector.multilingual import MultilingualModel; MultilingualModel()"
 
 COPY . .
 
