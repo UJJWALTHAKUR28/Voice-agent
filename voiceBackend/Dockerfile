@@ -1,0 +1,16 @@
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y \
+    gcc g++ libsndfile1 ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m livekit.agents download-files
+RUN python -c "from livekit.plugins.turn_detector.multilingual import MultilingualModel; MultilingualModel()"
+
+COPY . .
+
+CMD ["python", "main.py", "start"]
