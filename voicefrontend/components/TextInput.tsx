@@ -1,18 +1,9 @@
-// components/TextInput.tsx
-//
-// Text input bar at the bottom of the chat.
-// On submit: sends the text to the agent via DataPacket AND adds it to
-// the transcript immediately (optimistic update).
-
 'use client';
-
 import { useState, useRef, KeyboardEvent } from 'react';
-
 interface TextInputProps {
-    onSend: (text: string) => void;  // called with the typed message
+    onSend: (text: string) => void;
     disabled?: boolean;
 }
-
 export function TextInput({ onSend, disabled }: TextInputProps) {
     const [value, setValue] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -22,26 +13,21 @@ export function TextInput({ onSend, disabled }: TextInputProps) {
         if (!text || disabled) return;
         onSend(text);
         setValue('');
-        // Reset textarea height
         if (textareaRef.current) textareaRef.current.style.height = 'auto';
     };
 
     const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-        // Enter submits; Shift+Enter adds a newline
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             submit();
         }
     };
-
-    // Auto-grow textarea up to 5 rows
     const onInput = () => {
         const el = textareaRef.current;
         if (!el) return;
         el.style.height = 'auto';
         el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
     };
-
     return (
         <div style={{
             display: 'flex',

@@ -1,14 +1,4 @@
 'use client';
-
-// components/ClientToolHandler.tsx
-// Fix: Added card deduplication so cards don't repeat when agent is interrupted
-// and restarts the same tool call (weather → interrupted → agent re-speaks → duplicate card)
-//
-// Strategy:
-//   • Each card gets a stable hash key: type + city/expression + minute-window
-//   • If the same card arrives within 60s, it's suppressed (dedup window)
-//   • CardOverlay uses AnimatePresence so exits are animated
-
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useRoomContext } from '@livekit/components-react';
 import { RoomEvent } from 'livekit-client';
@@ -449,8 +439,6 @@ function CalculatorCard({ data, onClose }: { data: CalcData; onClose: () => void
     );
 }
 
-// ── Card Overlay ──────────────────────────────────────────────────────────────
-
 export function CardOverlay() {
     const [activeCards, setActiveCards] = useState<ActiveCard[]>([]);
 
@@ -487,18 +475,14 @@ export function CardOverlay() {
     );
 }
 
-// ── Main handler ──────────────────────────────────────────────────────────────
-
 export function ClientToolHandler({ onSystemMessage, onCardAction }: {
     onSystemMessage?: (text: string) => void;
     onCardAction?: (type: 'weather' | 'calculator', data: WeatherData | CalcData) => void;
 }) {
     const room = useRoomContext();
-
-    // Dedup registry: key → timestamp of last push
     const seenCards = useRef<Map<string, number>>(new Map());
 
-    const DEDUP_WINDOW_MS = 60_000; // 60 seconds
+    const DEDUP_WINDOW_MS = 60_000;
 
     function isDuplicate(key: string): boolean {
         const last = seenCards.current.get(key);
@@ -508,7 +492,6 @@ export function ClientToolHandler({ onSystemMessage, onCardAction }: {
 
     function markSeen(key: string) {
         seenCards.current.set(key, Date.now());
-        // GC old entries
         const cutoff = Date.now() - DEDUP_WINDOW_MS * 2;
         for (const [k, v] of seenCards.current.entries()) {
             if (v < cutoff) seenCards.current.delete(k);
@@ -535,7 +518,6 @@ export function ClientToolHandler({ onSystemMessage, onCardAction }: {
             case 'weather_card': {
                 const w = data as unknown as WeatherData;
                 const key = weatherKey(w);
-                // ─── DEDUP FIX: skip if same card seen within 60s ───
                 if (isDuplicate(key)) {
                     console.debug('[ClientToolHandler] weather_card deduped:', key);
                     break;
@@ -548,7 +530,6 @@ export function ClientToolHandler({ onSystemMessage, onCardAction }: {
             case 'calculator_card': {
                 const c = data as unknown as CalcData;
                 const key = calcKey(c);
-                // ─── DEDUP FIX: skip if same expression seen within 60s ───
                 if (isDuplicate(key)) {
                     console.debug('[ClientToolHandler] calculator_card deduped:', key);
                     break;
@@ -570,7 +551,6 @@ export function ClientToolHandler({ onSystemMessage, onCardAction }: {
             default:
                 console.warn('[ClientToolHandler] unknown action:', action);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [onSystemMessage, onCardAction]);
 
     useEffect(() => {

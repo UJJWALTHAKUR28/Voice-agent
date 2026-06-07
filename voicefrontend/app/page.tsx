@@ -1,17 +1,10 @@
 'use client';
 
-// app/page.tsx  —  Jocasta Landing — ENHANCED
-// Light theme: glass buttons, refined sage palette, improved CTAs
-// Dark theme: unchanged gold aesthetic
-// Added: glass morphism buttons, enhanced section transitions, richer parallax cards
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue } from 'motion/react';
 import Link from 'next/link';
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* JARVIS SPHERE — golden nodes + animated orbital rings                        */
-/* ─────────────────────────────────────────────────────────────────────────── */
 function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
@@ -279,9 +272,6 @@ function JARVISSphere({ isActive, size = 440 }: { isActive: boolean; size?: numb
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* GLASS BUTTON — adaptive light/dark                                           */
-/* ─────────────────────────────────────────────────────────────────────────── */
 function GlassButton({
   href,
   children,
@@ -421,9 +411,7 @@ function GlassButton({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* SCAN LINE                                                                    */
-/* ─────────────────────────────────────────────────────────────────────────── */
+
 function ScanLine() {
   return (
     <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 5, overflow: 'hidden' }}>
@@ -437,9 +425,6 @@ function ScanLine() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* PARALLAX COLUMN                                                               */
-/* ─────────────────────────────────────────────────────────────────────────── */
 function ParallaxColumn({
   index,
   scrollY,
@@ -568,9 +553,6 @@ function ParallaxColumn({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* FEATURE ROW ITEM                                                             */
-/* ─────────────────────────────────────────────────────────────────────────── */
 function FeatureRow({ index, icon, title, body, tag }: {
   index: number; icon: string; title: string; body: string; tag: string;
 }) {
@@ -614,9 +596,6 @@ function FeatureRow({ index, icon, title, body, tag }: {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* STAT TICKER                                                                  */
-/* ─────────────────────────────────────────────────────────────────────────── */
 function StatTicker() {
   const stats = [
     { value: '6', label: 'Provider fallbacks' },
@@ -654,9 +633,6 @@ function StatTicker() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* CAPABILITY CHIP                                                              */
-/* ─────────────────────────────────────────────────────────────────────────── */
 function Chip({ label, delay }: { label: string; delay: number }) {
   const [isLight, setIsLight] = useState(false);
   useEffect(() => {
@@ -701,9 +677,6 @@ function Chip({ label, delay }: { label: string; delay: number }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* SECTION HEADING                                                               */
-/* ─────────────────────────────────────────────────────────────────────────── */
 function SectionHeading({ tag, title, sub }: { tag: string; title: string; sub: string }) {
   return (
     <motion.div
@@ -736,9 +709,6 @@ function SectionHeading({ tag, title, sub }: { tag: string; title: string; sub: 
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────── */
-/* MAIN LANDING PAGE                                                             */
-/* ─────────────────────────────────────────────────────────────────────────── */
 export default function LandingPage() {
   const [hovered, setHovered] = useState(false);
   const [ready, setReady] = useState(false);
@@ -814,7 +784,6 @@ export default function LandingPage() {
         `,
       }} />
 
-      {/* Light mode atmospheric override */}
       <style>{`
         [data-theme="light"] #landing-atmos, html.light #landing-atmos {
           background:
@@ -823,10 +792,7 @@ export default function LandingPage() {
             radial-gradient(ellipse 50% 45% at 90% 15%, rgba(82,168,113,0.05) 0%, transparent 60%)
             !important;
         }
-        /* Light mode glass chip override — done in component above */
       `}</style>
-
-      {/* Grid */}
       <div style={{
         position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.022,
         backgroundImage: `linear-gradient(var(--border-mid) 1px, transparent 1px), linear-gradient(90deg, var(--border-mid) 1px, transparent 1px)`,
@@ -836,7 +802,7 @@ export default function LandingPage() {
       <ScanLine />
       <div className="noise-overlay" />
 
-      {/* ════════════════════════════════════════════ HERO ═══ */}
+
       <motion.section
         initial={{ opacity: 0 }}
         animate={{ opacity: ready ? 1 : 0 }}
@@ -1164,7 +1130,6 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ══════════════════════════════════════════ FOOTER ════ */}
       <footer style={{
         borderTop: '1px solid var(--border-dim)', padding: '32px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',

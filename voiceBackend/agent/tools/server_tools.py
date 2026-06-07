@@ -49,10 +49,8 @@ from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Hard cap for every external HTTP call — keeps voice latency predictable
 TOOL_TIMEOUT = 5.0  # seconds
 
-# Eager init — shared across all tool calls, no per-call setup cost
 _http_client: httpx.AsyncClient = httpx.AsyncClient(
     timeout=httpx.Timeout(TOOL_TIMEOUT, connect=2.0),
     follow_redirects=True,
@@ -92,11 +90,6 @@ async def _push_frontend_card(context: RunContext, action_type: str, data: dict)
         logger.info("auto-pushed frontend card action=%s", action_type)
     except Exception as exc:
         logger.warning("auto-push card failed action=%s: %s", action_type, exc)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Tool 1 — get_weather
-# ─────────────────────────────────────────────────────────────────────────────
 
 @function_tool()
 async def get_weather(context: RunContext, city: str) -> dict[str, Any]:
@@ -188,9 +181,6 @@ def _weather_emoji(weather_id: int) -> str:
     return "🌡"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tool 2 — get_news
-# ─────────────────────────────────────────────────────────────────────────────
 
 @function_tool()
 async def get_news(context: RunContext, topic: str, count: int) -> dict[str, Any]:
@@ -264,10 +254,6 @@ async def get_news(context: RunContext, topic: str, count: int) -> dict[str, Any
         logger.error("get_news failed topic=%s: %s", topic, exc)
         return {"error": "Unable to fetch news right now."}
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Tool 3 — calculate
-# ─────────────────────────────────────────────────────────────────────────────
 
 _SAFE_OPERATORS: dict[type, Any] = {
     ast.Add:      operator.add,

@@ -43,7 +43,7 @@ export default function RootLayout({
         />
         <Navbar />
         {children}
-        {/* Global toast container — handles theme-change notifications */}
+
         <ThemeToastContainer />
       </body>
     </html>

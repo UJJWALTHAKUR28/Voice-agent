@@ -1,17 +1,9 @@
 'use client';
-
-// components/Navbar.tsx — Jocasta Premium Navbar v2
-// Full redesign: floating pill nav, animated logo, smooth transitions,
-// animated status chip, keyboard shortcut hint, elegant theme toggle
-
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { applyTheme, getTheme, toggleTheme } from '@/utils/theme';
-
-// ── Icon library ──────────────────────────────────────────────────────────────
-
 function HomeIcon({ size = 14 }: { size?: number }) {
     return (
         <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
@@ -66,9 +58,6 @@ function MicIcon() {
         </svg>
     );
 }
-
-// ── Live Pulse Dot ────────────────────────────────────────────────────────────
-
 function LiveDot() {
     return (
         <span style={{ position: 'relative', display: 'inline-flex', width: 8, height: 8, flexShrink: 0 }}>
@@ -93,9 +82,6 @@ function LiveDot() {
         </span>
     );
 }
-
-// ── Logo mark ─────────────────────────────────────────────────────────────────
-
 function JocastaLogo({ isLight }: { isLight: boolean }) {
     const [hovered, setHovered] = useState(false);
 
@@ -106,7 +92,6 @@ function JocastaLogo({ isLight }: { isLight: boolean }) {
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
-            {/* Orb */}
             <motion.div
                 animate={{ scale: hovered ? 1.12 : 1, rotate: hovered ? 15 : 0 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
@@ -127,7 +112,6 @@ function JocastaLogo({ isLight }: { isLight: boolean }) {
                 J
             </motion.div>
 
-            {/* Wordmark */}
             <motion.span
                 animate={{ opacity: hovered ? 1 : 0.88 }}
                 transition={{ duration: 0.2 }}
@@ -140,7 +124,6 @@ function JocastaLogo({ isLight }: { isLight: boolean }) {
                 Jocasta
             </motion.span>
 
-            {/* LIVE chip */}
             <motion.div
                 animate={{ opacity: hovered ? 1 : 0.85, scale: hovered ? 1.03 : 1 }}
                 transition={{ duration: 0.2 }}
@@ -164,8 +147,6 @@ function JocastaLogo({ isLight }: { isLight: boolean }) {
         </Link>
     );
 }
-
-// ── Nav pill ──────────────────────────────────────────────────────────────────
 
 const NAV_LINKS = [
     { href: '/', label: 'Home', Icon: HomeIcon, shortcut: '⌘H' },
@@ -207,7 +188,6 @@ function NavPill({ isLight }: { isLight: boolean }) {
                     : '0 1px 0 rgba(255,255,255,0.03) inset',
             }}
         >
-            {/* Sliding background indicator */}
             <motion.div
                 animate={{ left: indicatorStyle.left, width: indicatorStyle.width }}
                 transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
@@ -260,7 +240,6 @@ function NavPill({ isLight }: { isLight: boolean }) {
     );
 }
 
-// ── Theme toggle button ───────────────────────────────────────────────────────
 
 function ThemeToggle({ isDark, isLight, onToggle }: { isDark: boolean; isLight: boolean; onToggle: () => void }) {
     const [hovered, setHovered] = useState(false);
@@ -291,7 +270,6 @@ function ThemeToggle({ isDark, isLight, onToggle }: { isDark: boolean; isLight: 
                 outline: 'none',
             }}
         >
-            {/* Animated icon swap */}
             <AnimatePresence mode="wait">
                 <motion.span
                     key={isDark ? 'sun' : 'moon'}
@@ -319,8 +297,6 @@ function ThemeToggle({ isDark, isLight, onToggle }: { isDark: boolean; isLight: 
         </motion.button>
     );
 }
-
-// ── Voice session CTA (shown on non-chat pages) ───────────────────────────────
 
 function VoiceCTA({ isLight, pathname }: { isLight: boolean; pathname: string }) {
     const [hovered, setHovered] = useState(false);
@@ -362,9 +338,6 @@ function VoiceCTA({ isLight, pathname }: { isLight: boolean; pathname: string })
     );
 }
 
-// ── Scrolled backdrop ─────────────────────────────────────────────────────────
-// Thin progress line at the very top showing scroll position
-
 function ScrollProgress({ isLight }: { isLight: boolean }) {
     const { scrollYProgress } = useScroll();
     const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
@@ -383,7 +356,6 @@ function ScrollProgress({ isLight }: { isLight: boolean }) {
     );
 }
 
-// ── Main Navbar export ────────────────────────────────────────────────────────
 
 export function Navbar() {
     const pathname = usePathname();
@@ -421,7 +393,6 @@ export function Navbar() {
         return () => observer.disconnect();
     }, []);
 
-    // Keyboard shortcut ⌘⇧L / ⌘⇧D
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L' || e.key === 'd' || e.key === 'D')) {
@@ -469,22 +440,17 @@ export function Navbar() {
                 transition: 'background 0.3s ease, border-color 0.3s ease',
             }}
         >
-            {/* Scroll progress line at bottom of navbar */}
             <ScrollProgress isLight={isLight} />
 
-            {/* ── Left: Logo ─────────────────────────────────────── */}
             <JocastaLogo isLight={isLight} />
 
-            {/* ── Center: Navigation pill ────────────────────────── */}
             <NavPill isLight={isLight} />
 
-            {/* ── Right: actions ─────────────────────────────────── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <ThemeToggle isDark={isDark} isLight={isLight} onToggle={handleToggleTheme} />
                 <VoiceCTA isLight={isLight} pathname={pathname} />
             </div>
 
-            {/* Inject keyframe */}
             <style>{`
         nav * { box-sizing: border-box; }
       `}</style>

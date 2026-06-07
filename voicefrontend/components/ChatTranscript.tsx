@@ -169,14 +169,11 @@ function ThinkingBubble() {
 
 export function ChatTranscript({ messages, interimText, agentState }: ChatTranscriptProps) {
     const bottomRef = useRef<HTMLDivElement>(null);
-
-    // Auto-scroll on any change
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, interimText, agentState]);
 
     const isEmpty = messages.length === 0 && !interimText;
-
     return (
         <div style={{
             flex: 1,
@@ -186,7 +183,6 @@ export function ChatTranscript({ messages, interimText, agentState }: ChatTransc
             flexDirection: 'column',
             gap: '14px',
         }}>
-            {/* Empty state */}
             {isEmpty && (
                 <div style={{
                     flex: 1,
@@ -209,21 +205,13 @@ export function ChatTranscript({ messages, interimText, agentState }: ChatTransc
                     </p>
                 </div>
             )}
-
-            {/* Committed messages */}
             {messages.map(item => (
                 item.role === 'user'
                     ? <UserBubble key={item.id} item={item} />
                     : <AgentBubble key={item.id} item={item} />
             ))}
-
-            {/* Live interim speech */}
             {interimText && <InterimBubble text={interimText} />}
-
-            {/* Agent thinking indicator */}
             {agentState === 'thinking' && <ThinkingBubble />}
-
-            {/* Scroll anchor */}
             <div ref={bottomRef} />
         </div>
     );

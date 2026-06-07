@@ -1,12 +1,4 @@
 'use client';
-
-// components/ThemeToast.tsx
-//
-// Beautiful toast notification system for Jocasta.
-// Handles theme-change toasts + general app notifications.
-// Fully light/dark aware — uses CSS variables throughout.
-// Registers itself with the theme utility for theme-change toasts.
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { registerThemeToastFn } from '@/utils/theme';
 
@@ -17,15 +9,11 @@ export interface ToastItem {
     variant?: 'dark' | 'light' | 'info' | 'success' | 'error';
     duration?: number;
 }
-
-// ── Singleton setter ──────────────────────────────────────────────────────────
 let _pushToast: ((t: Omit<ToastItem, 'id'>) => void) | null = null;
 
 export function pushToast(t: Omit<ToastItem, 'id'>) {
     _pushToast?.(t);
 }
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
 function MoonIcon() {
     return (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -62,7 +50,6 @@ function SuccessIcon() {
         </svg>
     );
 }
-
 function ErrorIcon() {
     return (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -71,8 +58,6 @@ function ErrorIcon() {
         </svg>
     );
 }
-
-// ── Variant styles (uses CSS vars so they adapt to light/dark) ────────────────
 const VARIANT_STYLES: Record<NonNullable<ToastItem['variant']>, {
     icon: React.ReactNode;
     iconColor: string;
@@ -116,8 +101,6 @@ const VARIANT_STYLES: Record<NonNullable<ToastItem['variant']>, {
         bg: 'linear-gradient(135deg, rgba(248,113,113,0.08) 0%, rgba(248,113,113,0.03) 100%)',
     },
 };
-
-// ── Single Toast ───────────────────────────────────────────────────────────────
 function Toast({ item, onDismiss }: { item: ToastItem; onDismiss: (id: string) => void }) {
     const variant = item.variant ?? 'info';
     const style = VARIANT_STYLES[variant];
@@ -236,8 +219,6 @@ function Toast({ item, onDismiss }: { item: ToastItem; onDismiss: (id: string) =
         </div>
     );
 }
-
-// ── Container ──────────────────────────────────────────────────────────────────
 export function ThemeToastContainer() {
     const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -250,22 +231,17 @@ export function ThemeToastContainer() {
         setToasts(prev => prev.filter(t => t.id !== id));
     }, []);
 
-    // Register global push
     useEffect(() => {
         _pushToast = push;
         return () => { _pushToast = null; };
     }, [push]);
-
-    // Register with theme utility
     useEffect(() => {
         registerThemeToastFn((title, message, variant) => {
             push({ title, message, variant: variant ?? 'info' });
         });
     }, [push]);
-
     return (
         <>
-            {/* Keyframe injection */}
             <style>{`
                 @keyframes toast-enter {
                     from { opacity: 0; transform: translateX(calc(100% + 20px)) scale(0.92); }

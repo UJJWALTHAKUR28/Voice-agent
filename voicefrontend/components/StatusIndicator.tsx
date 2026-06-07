@@ -1,13 +1,4 @@
-// components/StatusIndicator.tsx
-//
-// Shows Aria's current state as a visual indicator:
-//   listening → pulsing green ring
-//   thinking  → rotating purple dots
-//   speaking  → animated amber bars (waveform)
-//   idle      → quiet grey
-
 'use client';
-
 import type { AgentState } from '../hooks/useAgentEvents';
 
 const STATE_CONFIG: Record<AgentState, { label: string; color: string; cssVar: string }> = {

@@ -38,7 +38,6 @@ from livekit.agents import stt as agent_stt
 from agent.pipeline import VoiceAssistant, create_session
 from agent.apiHealth import check_all_keys
 
-# ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level    = logging.INFO,
     format   = "%(asctime)s  [%(levelname)-7s]  %(name)s — %(message)s",
@@ -52,12 +51,6 @@ logging.getLogger("livekit.plugins").setLevel(logging.WARNING)
 logging.getLogger("livekit.agents.llm").setLevel(logging.WARNING)
 
 logger = logging.getLogger("voice-agent")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Event publisher — pushes typed events to the browser over DataPackets
-# ─────────────────────────────────────────────────────────────────────────────
-
 async def _publish_event(room: rtc.Room, event: dict) -> None:
     """
     Publish a JSON event to all browser participants on topic="agent-event".
@@ -72,11 +65,6 @@ async def _publish_event(room: rtc.Room, event: dict) -> None:
         )
     except Exception as exc:
         logger.warning("event publish failed: %s", exc)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Pre-warm — load heavy models at worker startup, NOT at first session
-# ─────────────────────────────────────────────────────────────────────────────
 
 async def _prewarm(proc: agents.JobProcess) -> None:
     """
@@ -118,10 +106,6 @@ async def _prewarm(proc: agents.JobProcess) -> None:
     logger.info("pre-warm complete — total %.1fs", time.monotonic() - t0)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Agent session
-# ─────────────────────────────────────────────────────────────────────────────
-
 server = AgentServer(
     setup_fnc=_prewarm,  # ← runs once at worker startup, not per-session
 )
@@ -135,9 +119,6 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
 
     room    = ctx.room
-
-    # Re-use pre-warmed models from proc.userdata if available
-    # This means create_session() gets them instantly instead of reloading
     pre_warmed_vad        = getattr(ctx.proc, "userdata", {}).get("vad")
     pre_warmed_turn_model = getattr(ctx.proc, "userdata", {}).get("turn_model")
 
@@ -145,8 +126,6 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
         prewarmed_vad        = pre_warmed_vad,
         prewarmed_turn_model = pre_warmed_turn_model,
     )
-
-    # ── Wire up transcript + state events → frontend ──────────────────────
 
     @session.on("user_input_transcribed")
     def on_user_transcript(ev) -> None:
@@ -186,9 +165,6 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
                 "content": str(content).strip(),
             })
         )
-
-    # ── Text-input listener — typed messages from the browser ──────────────
-
     @room.on("data_received")
     def on_data(data_packet: rtc.DataPacket) -> None:
         if data_packet.topic != "text-input":
@@ -218,8 +194,6 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
             session.generate_reply(user_input=text)
         )
 
-    # ── Start the session ──────────────────────────────────────────────────
-
     await session.start(room=room, agent=VoiceAssistant())
 
     await session.generate_reply(
@@ -232,17 +206,6 @@ async def voice_agent_session(ctx: agents.JobContext) -> None:
     )
 
     logger.info("agent live — room=%s", ctx.room.name)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Entry point
-# ─────────────────────────────────────────────────────────────────────────────
-
 if __name__ == "__main__":
     all_ok, _ = asyncio.run(check_all_keys())
-
-    if not all_ok:
-        print("  Aborting. Fix the keys above and restart.\n")
-        sys.exit(1)
-
     agents.cli.run_app(server)

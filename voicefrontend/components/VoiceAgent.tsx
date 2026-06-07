@@ -1,9 +1,4 @@
 'use client';
-
-// components/VoiceAgent.tsx — ENHANCED
-// Pre-session: rich "Begin Session" screen with animated sphere, feature pills, tips
-// In-session: unchanged sage/gold aesthetic, glass-morphism chat
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
     LiveKitRoom,
@@ -21,8 +16,6 @@ import { useTranscript } from '../hooks/useTranscript';
 import { useTextInput } from '../hooks/useTextInput';
 import type { AgentState, ConversationItem } from '@/hooks/useAgentEvents';
 
-// ── Theme detection ───────────────────────────────────────────────────────────
-
 function isLightTheme(): boolean {
     if (typeof window === 'undefined') return false;
     return (
@@ -38,8 +31,6 @@ async function fetchToken(): Promise<TokenResponse> {
     if (!res.ok) throw new Error(`Token fetch failed: ${res.status}`);
     return res.json();
 }
-
-// ── Mini animated sphere for pre-session card ─────────────────────────────────
 
 function MiniSphere({ size = 120, active = true }: { size?: number; active?: boolean }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -122,8 +113,6 @@ function MiniSphere({ size = 120, active = true }: { size?: number; active?: boo
     return <canvas ref={canvasRef} style={{ display: 'block' }} />;
 }
 
-// ── Capability pill ───────────────────────────────────────────────────────────
-
 function CapPill({ icon, label, light }: { icon: string; label: string; light: boolean }) {
     return (
         <div style={{
@@ -142,8 +131,6 @@ function CapPill({ icon, label, light }: { icon: string; label: string; light: b
         </div>
     );
 }
-
-// ── Tip row ───────────────────────────────────────────────────────────────────
 
 function TipRow({ tip, light }: { tip: string; light: boolean }) {
     return (
@@ -167,8 +154,6 @@ function TipRow({ tip, light }: { tip: string; light: boolean }) {
     );
 }
 
-// ── Pre-session Screen ────────────────────────────────────────────────────────
-// Rich landing before the user starts a session
 
 function PreSessionScreen({
     onStart,
@@ -218,7 +203,6 @@ function PreSessionScreen({
             padding: '32px 20px',
             transition: 'background 0.35s ease',
         }}>
-            {/* Background gradient */}
             <div style={{
                 position: 'fixed', inset: 0, pointerEvents: 'none',
                 background: light
@@ -239,7 +223,6 @@ function PreSessionScreen({
                 transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
                 style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '880px' }}
             >
-                {/* ── Main card ── */}
                 <div style={{
                     borderRadius: '28px',
                     background: light
@@ -252,7 +235,6 @@ function PreSessionScreen({
                         : '0 1px 0 rgba(255,255,255,0.06) inset, 0 32px 80px rgba(0,0,0,0.45)',
                     overflow: 'hidden',
                 }}>
-                    {/* Top accent bar */}
                     <div style={{
                         height: '3px',
                         background: light
@@ -261,7 +243,6 @@ function PreSessionScreen({
                     }} />
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', minHeight: '500px' }}>
-                        {/* ── Left: sphere + identity ── */}
                         <div style={{
                             padding: '48px 40px',
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -271,7 +252,6 @@ function PreSessionScreen({
                                 ? 'linear-gradient(160deg, rgba(255,255,255,0.40) 0%, rgba(240,247,240,0.20) 100%)'
                                 : 'linear-gradient(160deg, rgba(255,255,255,0.02) 0%, transparent 100%)',
                         }}>
-                            {/* Atmosphere behind sphere */}
                             <div style={{
                                 position: 'absolute',
                                 width: '260px', height: '260px', borderRadius: '50%',
@@ -309,7 +289,6 @@ function PreSessionScreen({
                                     Neural voice intelligence.<br />Five layers. Zero downtime.
                                 </div>
 
-                                {/* Status badge */}
                                 <div style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '8px',
                                     padding: '6px 14px', borderRadius: '100px',
@@ -332,9 +311,7 @@ function PreSessionScreen({
                             </motion.div>
                         </div>
 
-                        {/* ── Right: info + action ── */}
                         <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '24px' }}>
-                            {/* Caps */}
                             <motion.div
                                 initial={{ opacity: 0, y: 12 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -352,7 +329,6 @@ function PreSessionScreen({
                                 </div>
                             </motion.div>
 
-                            {/* Tips */}
                             <motion.div
                                 initial={{ opacity: 0, y: 12 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -377,7 +353,6 @@ function PreSessionScreen({
                                 </div>
                             </motion.div>
 
-                            {/* Error */}
                             <AnimatePresence>
                                 {error && (
                                     <motion.div
@@ -394,7 +369,6 @@ function PreSessionScreen({
                                 )}
                             </AnimatePresence>
 
-                            {/* CTA */}
                             <motion.div
                                 initial={{ opacity: 0, y: 12 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -470,16 +444,10 @@ function PreSessionScreen({
                         </div>
                     </div>
                 </div>
-
-                {/* ── Pipeline strip below card ── */}
-
             </motion.div>
         </div>
     );
 }
-
-// ── AgentOrb — adapts colours per theme AND per state ────────────────────────
-
 function AgentOrb({ state }: { state: AgentState }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animRef = useRef<number>(0);
@@ -680,9 +648,6 @@ function AgentOrb({ state }: { state: AgentState }) {
         </div>
     );
 }
-
-// ── Chat card types & inline cards (unchanged from original) ─────────────────
-
 type ChatCardItem = | { kind: 'weather'; data: WeatherData } | { kind: 'calculator'; data: CalcData };
 
 function InlineWeatherCard({ data, light }: { data: WeatherData; light: boolean }) {
@@ -773,9 +738,6 @@ function InlineCalcCard({ data, light }: { data: CalcData; light: boolean }) {
         </div>
     );
 }
-
-// ── Message Bubble ────────────────────────────────────────────────────────────
-
 function MessageBubble({ item, light, cards }: { item: ConversationItem; light: boolean; cards?: ChatCardItem[] }) {
     const isUser = item.role === 'user';
     const isSystem = item.role === 'system';
@@ -805,7 +767,6 @@ function MessageBubble({ item, light, cards }: { item: ConversationItem; light: 
         </motion.div>
     );
 }
-
 function ThinkingBubble({ light }: { light: boolean }) {
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px' }}>
@@ -818,9 +779,6 @@ function ThinkingBubble({ light }: { light: boolean }) {
         </div>
     );
 }
-
-// ── Inner session ─────────────────────────────────────────────────────────────
-
 function JocastaSession() {
     const { state: lkState, agentTranscriptions } = useVoiceAssistant();
     const agentState = (lkState as AgentState) ?? 'idle';
@@ -847,60 +805,96 @@ function JocastaSession() {
     const [chatCards, setChatCards] = useState<Map<string, ChatCardItem[]>>(new Map());
 
     const handleCardAction = useCallback((type: 'weather' | 'calculator', data: WeatherData | CalcData) => {
-        const card: ChatCardItem = type === 'weather' ? { kind: 'weather', data: data as WeatherData } : { kind: 'calculator', data: data as CalcData };
-        setChatCards(prev => { const next = new Map(prev); const pending = next.get('attach-next') || []; next.set('attach-next', [...pending, card]); return next; });
+        const card: ChatCardItem = type === 'weather'
+            ? { kind: 'weather', data: data as WeatherData }
+            : { kind: 'calculator', data: data as CalcData };
+        setChatCards(prev => {
+            const next = new Map(prev);
+            const pending = next.get('attach-next') || [];
+            next.set('attach-next', [...pending, card]);
+            return next;
+        });
     }, []);
-
     useEffect(() => {
-        if (!sessionStarted.current && agentState !== 'initializing') { sessionStarted.current = true; setTimeout(() => playSound('session_start'), 400); }
+        if (!sessionStarted.current && agentState !== 'initializing') {
+            sessionStarted.current = true;
+            setTimeout(() => playSound('session_start'), 400);
+        }
     }, [agentState]);
-
     useEffect(() => {
         if (!agentTranscriptions?.length) return;
         const current = agentTranscriptions.slice(transcriptStartIndex.current);
         const text = current.map(t => t.text).join('').trim();
         if (text) setStreamingAgent(text);
     }, [agentTranscriptions]);
-
     useEffect(() => {
-        const wasNotSpeaking = prevState.current !== 'speaking', wasSpeaking = prevState.current === 'speaking';
-        const nowSpeaking = agentState === 'speaking', nowNotSpeaking = agentState !== 'speaking';
-        if (nowSpeaking && wasNotSpeaking) { transcriptStartIndex.current = agentTranscriptions?.length ?? 0; setStreamingAgent(''); }
+        const wasSpeaking = prevState.current === 'speaking';
+        const nowSpeaking = agentState === 'speaking';
+        const nowNotSpeaking = agentState !== 'speaking';
+
+        if (nowSpeaking && prevState.current !== 'speaking') {
+            transcriptStartIndex.current = agentTranscriptions?.length ?? 0;
+            setStreamingAgent('');
+        }
+
         if (wasSpeaking && nowNotSpeaking) {
-            if (streamingAgentText.trim() && streamingAgentText.trim() !== lastAgentMsg.current) {
-                lastAgentMsg.current = streamingAgentText.trim();
-                const newItem: ConversationItem = { role: 'assistant', content: streamingAgentText.trim(), timestamp: Date.now(), id: `agent-stream-${Date.now()}` };
+            const text = streamingAgentText.trim();
+            if (text && text !== lastAgentMsg.current) {
+                lastAgentMsg.current = text;
+                const newItem: ConversationItem = {
+                    role: 'assistant',
+                    content: text,
+                    timestamp: Date.now(),
+                    id: `agent-stream-${Date.now()}`,
+                };
                 addItem(newItem);
-                setChatCards(prev => { const pending = prev.get('attach-next'); if (!pending || pending.length === 0) return prev; const next = new Map(prev); next.delete('attach-next'); const existing = next.get(newItem.id) || []; next.set(newItem.id, [...existing, ...pending]); return next; });
+                setChatCards(prev => {
+                    const pending = prev.get('attach-next');
+                    if (!pending || pending.length === 0) return prev;
+                    const next = new Map(prev);
+                    next.delete('attach-next');
+                    const existing = next.get(newItem.id) || [];
+                    next.set(newItem.id, [...existing, ...pending]);
+                    return next;
+                });
             }
             setStreamingAgent('');
         }
+
         prevState.current = agentState;
     }, [agentState, agentTranscriptions, streamingAgentText, addItem]);
-
     useAgentEvents({
         onTranscript: e => updateInterim(e.transcript, e.isFinal),
         onStateChange: _ => { },
         onItemAdded: item => {
-            if (item.role === 'user') { addItem(item); }
-            else if (item.content !== lastAgentMsg.current) {
-                lastAgentMsg.current = item.content; setStreamingAgent('');
-                const newItem = { ...item }; addItem(newItem);
-                setChatCards(prev => { const pending = prev.get('attach-next'); if (!pending || pending.length === 0) return prev; const next = new Map(prev); next.delete('attach-next'); const existing = next.get(newItem.id) || []; next.set(newItem.id, [...existing, ...pending]); return next; });
+            if (item.role === 'user') {
+                addItem(item);
             }
         },
     });
 
-    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, interimText, agentState, streamingAgentText]);
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, interimText, agentState, streamingAgentText]);
 
     const handleSend = useCallback(() => {
-        const text = textValue.trim(); if (!text) return;
-        addUserTyped(text); sendText(text); setTextValue('');
+        const text = textValue.trim();
+        if (!text) return;
+        addUserTyped(text);
+        sendText(text);
+        setTextValue('');
         if (textareaRef.current) textareaRef.current.style.height = 'auto';
     }, [textValue, addUserTyped, sendText]);
 
-    const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
-    const onInput = () => { const el = textareaRef.current; if (!el) return; el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 120)}px`; };
+    const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    };
+    const onInput = () => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    };
 
     const isConnected = lkState !== 'disconnected';
     const allMessages: ConversationItem[] = streamingAgentText
@@ -974,14 +968,14 @@ function JocastaSession() {
             </div>
 
             <RoomAudioRenderer />
-            <ClientToolHandler onSystemMessage={(msg) => addItem({ role: 'system', content: msg, timestamp: Date.now(), id: `sys-${Date.now()}` })} onCardAction={handleCardAction} />
+            <ClientToolHandler
+                onSystemMessage={(msg) => addItem({ role: 'system', content: msg, timestamp: Date.now(), id: `sys-${Date.now()}` })}
+                onCardAction={handleCardAction}
+            />
             <CardOverlay />
         </div>
     );
 }
-
-// ── Root export ───────────────────────────────────────────────────────────────
-
 export function VoiceAgent() {
     const [conn, setConn] = useState<TokenResponse | null>(null);
     const [loading, setLoading] = useState(false);

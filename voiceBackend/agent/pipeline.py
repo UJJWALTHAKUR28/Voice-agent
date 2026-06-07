@@ -46,11 +46,6 @@ from agent.tools import calculate, get_news, get_weather, send_frontend_action
 
 logger = logging.getLogger("voice-agent.pipeline")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# System prompt
-# ─────────────────────────────────────────────────────────────────────────────
-
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "system_prompt.txt"
 
 
@@ -64,11 +59,6 @@ def _load_system_prompt() -> str:
             "Keep responses concise, natural, and conversational. "
             "Never use bullet points or markdown — speak in plain prose."
         )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Clean log filter
-# ─────────────────────────────────────────────────────────────────────────────
 
 class _CleanLogFilter(logging.Filter):
     _NOISE = (
@@ -94,16 +84,9 @@ class _CleanLogFilter(logging.Filter):
                 return True
         return True
 
-
 logging.getLogger("livekit.agents").addFilter(_CleanLogFilter())
 logging.getLogger("livekit.agents.llm.fallback_adapter").setLevel(logging.ERROR)
 logging.getLogger("livekit.plugins").setLevel(logging.WARNING)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# STT
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _build_stt() -> STTFallbackAdapter:
     lk_stt = lk_inference.STT(
         model    = "deepgram/nova-3",
@@ -115,11 +98,6 @@ def _build_stt() -> STTFallbackAdapter:
     )
     plugin_stt = deepgram.STT(model="nova-3", language="en")
     return STTFallbackAdapter(stt=[lk_stt, plugin_stt])
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# LLM
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _build_llm() -> FallbackAdapter:
     from config.settings import get_settings
@@ -135,11 +113,6 @@ def _build_llm() -> FallbackAdapter:
     )
     return FallbackAdapter(llm=[lk_llm, groq_70b, groq_8b], attempt_timeout=6.0)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# TTS
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _build_tts() -> TTSFallbackAdapter:
     _VOICE_ID = "ec1e269e-9ca0-402f-8a18-58e0e022355a"
 
@@ -154,12 +127,6 @@ def _build_tts() -> TTSFallbackAdapter:
     )
     plugin_tts = cartesia.TTS(model="sonic-3", voice=_VOICE_ID, language="en")
     return TTSFallbackAdapter(tts=[lk_tts, plugin_tts])
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Agent
-# ─────────────────────────────────────────────────────────────────────────────
-
 class VoiceAssistant(Agent):
     """Jocasta — voice assistant with full tool access."""
 
@@ -168,11 +135,6 @@ class VoiceAssistant(Agent):
             instructions = _load_system_prompt(),
             tools        = [get_weather, get_news, calculate, send_frontend_action],
         )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Pipeline factory — accepts pre-warmed models from main.py _prewarm()
-# ─────────────────────────────────────────────────────────────────────────────
 
 def create_session(
     prewarmed_vad:        Any | None = None,
